@@ -26,11 +26,42 @@
   (que se vea bien, que el layout no se rompa) solo se puede hacer en
   una máquina con display real (la de Seba en Windows).
 
-## Pendiente de validar en la máquina de Seba (no reproducible en el sandbox)
+## Validación en la máquina real de Seba (WSL2 + WSLg + OBS en Windows)
 
-- Conexión real a una instancia de OBS corriendo (`Test OBS` end-to-end
-  contra el WebSocket Server real).
+- **`wait_timeout` de `python-socketio` Client(): default 1s, insuficiente.**
+  Con la ventana PyQt6 renderizando por software (WSLg sin GPU
+  passthrough, warnings de `libEGL`/`ZINK` en el log), el handshake del
+  namespace de Socket.IO no llegaba a tiempo dentro del segundo por
+  defecto y tiraba `One or more namespaces failed to connect`. Subir a
+  `wait_timeout=10` en `_ensure_socket_connected` lo resolvió. No se
+  logró reproducir la falla exacta en el sandbox (1 solo core, sin la
+  misma carga de renderizado), pero el fix es correcto de todas formas
+  dado lo ajustado del default.
+- **WSL2 en modo NAT no comparte `localhost` con Windows.** `nameserver`
+  en `/etc/resolv.conf` apuntando a `10.255.255.254` es la señal de modo
+  NAT (no mirrored). Para que la app (corriendo en WSL) llegue al OBS
+  real (corriendo en Windows), hay que usar la IP del gateway visible
+  desde WSL (`ip route show default | awk '{print $3}'`), nunca
+  `localhost`. Se agregó soporte a `OBS_HOST`/`OBS_PORT`/`OBS_PASSWORD`
+  por variable de entorno en `MainWindow` para poder probar esto sin
+  esperar a la pantalla de configuración real de la Fase 2.
+- **Confirmación importante para el diseño real:** este problema de
+  `localhost` cruzado desaparece por completo una vez que la app corre
+  nativa en Windows (que es como se le entrega al CEO) — ahí el backend,
+  el panel y OBS están todos en la misma máquina de verdad. WSL2 sirvió
+  para iterar rápido, pero no reemplaza una prueba final en Windows puro.
+- **`obsws-python` tira `OBSSDKError: authentication enabled but no
+  password provided`** cuando el WebSocket Server de OBS tiene password
+  habilitado y no se la pasamos — mensaje de error claro, sin necesidad
+  de investigar más.
+
+## Pendiente de validar en la máquina de Seba
+
 - Comportamiento visual del overlay dentro de un Browser Source real de
-  OBS (transparencia, dimensiones).
+  OBS (transparencia, dimensiones) — la conexión Socket.IO ya está
+  probada, falta agregarlo como Browser Source real y verlo en la
+  escena.
 - Empaquetado con PyInstaller en Windows y arranque del `.exe` en una
   máquina limpia.
+- Ejecución nativa en Windows (no WSL) del flujo completo, para dejar de
+  depender de la traducción de IP/`localhost` entre WSL y Windows.

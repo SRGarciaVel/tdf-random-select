@@ -14,31 +14,37 @@ punta, antes de construir lógica de negocio. Ver `SPECS.md §7`.
 - [x] Bootstrap del repo: `.md`s de estructura, `requirements.txt`,
       `overlay_app` scaffoldeado con Vite + React + TS.
 - [x] `main.py` con ventana PyQt6 mínima (botón "Ping") corriendo sobre
-      `qasync` sin bloquear el loop de eventos. Verificado: compila,
-      importa, y `MainWindow` se instancia y muestra sin errores en modo
-      `QT_QPA_PLATFORM=offscreen` (sin display real, ver `tasks/lessons.md`).
-      Pendiente de validar en Windows con display real: que el layout se
-      vea bien.
+      `qasync` sin bloquear el loop de eventos. Validado en la máquina de
+      Seba (WSL2 con WSLg, sin GPU passthrough real — solo warnings de
+      `libEGL`/`ZINK`, no bloqueantes): la ventana abre y renderiza bien.
 - [x] Backend Flask-SocketIO embebido, levantado en un thread aparte,
       sirviendo en `localhost:5001`. Verificado con curl real: `/health`
       responde 200, `/` sirve el `index.html` del build de Vite.
 - [x] Evento `ping_from_control_panel` -> `ping_broadcast` probado de
       punta a punta con dos clientes Socket.IO reales (uno simulando el
-      panel, otro el overlay) — el mensaje llega intacto.
+      panel, otro el overlay) — el mensaje llega intacto. Validado además
+      en la máquina de Seba con el botón real del panel (requirió subir
+      `wait_timeout` de 1s a 10s, ver `tasks/lessons.md`).
 - [x] `overlay_app` mínimo conectado por `socket.io-client`, escuchando
       `ping_broadcast`. Build real (`npm run build`) verificado, servido
       correctamente por Flask.
-- [x] `ObsService`: conexión real intentada contra `localhost:4455` sin
-      OBS corriendo en el sandbox, confirma que el error se captura y se
-      re-lanza como `ObsConnectionError` (modo degradado, no crashea).
-      **Pendiente de validar en la máquina de Seba:** conexión real
-      contra una instancia de OBS corriendo, listar escenas reales, y
-      `SetCurrentProgramScene` real.
-- [ ] Validación combinada de las 5 piezas corriendo juntas en un solo
-      proceso (`python main.py` completo, con click real del botón) en
-      la máquina de Seba con display real y OBS corriendo — el sandbox
-      no tiene ninguna de las dos cosas, así que cada pieza se verificó
-      por separado pero falta la corrida integrada real.
+- [x] `ObsService`: validado en la máquina de Seba contra una instancia
+      real de OBS 32.2.2 con WebSocket Server habilitado y password —
+      `list_scenes()` devolvió la escena real ("Escena"). Requirió sumar
+      `OBS_HOST`/`OBS_PORT`/`OBS_PASSWORD` como env vars (ver
+      `tasks/lessons.md`, WSL2 en modo NAT no comparte `localhost` con
+      Windows). `SetCurrentProgramScene` real (cambio de escena de
+      verdad) queda para la Fase 4, cuando se construya el flujo
+      completo de baneo — acá solo se validó la conexión y el listado.
+- [ ] Confirmación visual pendiente: que el overlay (`localhost:5001` en
+      un navegador) efectivamente muestre el mensaje del Ping en pantalla,
+      no solo que el panel diga "enviado".
+- [x] Las piezas del walking skeleton corriendo juntas en un solo
+      proceso (`python main.py`) en la máquina real de Seba (WSL2 +
+      WSLg + OBS real en Windows): ventana abre, backend levanta, Ping
+      conecta, Test OBS lista escenas reales. Falta únicamente la
+      confirmación visual del overlay (ítem de arriba) para cerrar la
+      fase por completo y pasar a la Fase 1.
 
 ## Fase 1 — Modelo de datos y lógica del draft
 
