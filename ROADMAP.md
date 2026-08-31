@@ -51,20 +51,28 @@ punta, antes de construir lógica de negocio. Ver `SPECS.md §7`.
 **Objetivo:** el backend sabe ejecutar un draft completo (aunque el
 panel y el overlay todavía sean mínimos).
 
-- [ ] Modelos SQLAlchemy + migraciones para `players`, `character_tags`,
+- [x] Modelos SQLAlchemy + migraciones para `players`, `character_tags`,
       `tournaments`, `matches`, `match_bans`, `match_results`,
-      `obs_settings` (ver `SPECS.md §6`).
-- [ ] Roster completo de los 31 personajes de SF6 (id, nombre, ruta al
-      retrato oficial) como dato semilla, no hardcodeado en lógica.
-- [ ] Máquina de estados del match (`SETUP → BANNING → RANDOMIZING →
-      REVEAL → DONE`) en `backend/app/services/`, con validación de
-      turnos (no se puede banear fuera de orden, no se puede repetir un
-      personaje ya baneado).
-- [ ] Lógica de random con reposición (mirror match permitido) sobre el
+      `obs_settings` (ver `SPECS.md §6`). Sin Alembic todavía — con
+      `Base.metadata.create_all()` alcanza mientras el schema no está
+      estable; se agrega Alembic si hace falta versionar una migración
+      real más adelante.
+- [x] Roster completo de los 26 personajes de SF6 que tengo registrados
+      (id, nombre, campo para retrato pendiente) como dato semilla en
+      `backend/app/data/sf6_roster.py`, no hardcodeado en lógica.
+      **Pendiente: confirmar contra el roster oficial vigente** antes de
+      la Fase 3 — la lista de SF6 crece con cada season pass.
+- [x] Máquina de estados del match (`SETUP → BANNING → RANDOMIZING →
+      REVEAL → DONE`) en `backend/app/services/draft_service.py`, con
+      validación de turnos y de personajes repetidos.
+- [x] Lógica de random con reposición (mirror match permitido) sobre el
       pool restante.
-- [ ] Tests contra SQLite real cubriendo un draft completo de punta a
-      punta, incluyendo el caso de baneo inválido (fuera de turno,
-      personaje repetido).
+- [x] Tests contra SQLite real (archivo temporal, no `:memory:`, no
+      mocks) cubriendo un draft completo de punta a punta, los casos de
+      baneo inválido (fuera de turno, personaje repetido, personaje
+      inexistente, transiciones de estado inválidas), el mirror match
+      determinístico, y la constraint UNIQUE a nivel de base de datos
+      como segunda capa de defensa. **9/9 tests pasan.**
 
 ## Fase 2 — Panel de control real (PyQt6)
 

@@ -81,6 +81,13 @@ cd ..
 python main.py
 ```
 
+## Tests
+
+```bash
+pip install -r requirements-dev.txt
+pytest backend/tests/ -v
+```
+
 ## Roadmap
 
 Ver `ROADMAP.md` para el orden de construcción, empezando por el walking

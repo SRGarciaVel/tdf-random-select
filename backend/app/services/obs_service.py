@@ -21,7 +21,9 @@ class ObsService:
     librería hacia el resto de la app.
     """
 
-    def __init__(self, host: str = "localhost", port: int = 4455, password: str = "") -> None:
+    def __init__(
+        self, host: str = "localhost", port: int = 4455, password: str = ""
+    ) -> None:
         self._host = host
         self._port = port
         self._password = password
@@ -55,7 +57,9 @@ class ObsService:
         if self._client is None:
             raise ObsConnectionError("No hay conexión activa a OBS.")
         if self._previous_scene is None:
-            logger.warning("restore_previous_scene llamado sin una escena guardada previa.")
+            logger.warning(
+                "restore_previous_scene llamado sin una escena guardada previa."
+            )
             return
         self._client.set_current_program_scene(self._previous_scene)
         self._previous_scene = None
