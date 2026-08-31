@@ -156,9 +156,10 @@ donde tiene más sentido junto con el resto de la automatización de OBS.
       animación real con Framer Motion.
 - [ ] Animación de reveal tipo LoL para el personaje asignado a cada
       jugador.
-- [ ] Verificación de que el overlay se ve bien dentro de un Browser
+- [x] Verificación de que el overlay se ve bien dentro de un Browser
       Source real de OBS (dimensiones, fondo transparente donde
-      corresponda).
+      corresponda). **Confirmado**: la grilla se ve completa y el fondo
+      transparente compone bien sobre la escena.
 
 ## Fase 4 — Automatización completa de OBS
 

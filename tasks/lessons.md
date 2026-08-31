@@ -75,6 +75,19 @@
   del mismo refresh que hace que la entidad desaparezca. Conviene emitir
   el estado final de forma explicita, separado del refresh de la UI.
 
+## Browser Source de OBS: cachea una carga fallida
+
+- **Si agregas el Browser Source antes de que el backend esté arriba**
+  (`python main.py` corriendo), el Chromium embebido de OBS (CEF) se
+  queda con esa carga fallida en caché y no la reintenta solo, aunque el
+  backend arranque después - la fuente se ve en negro/vacía
+  indefinidamente. El botón "Actualizar la caché de la página actual"
+  (en Propiedades) o "Actualizar" (en el panel de la fuente) fuerza el
+  reintento y resuelve. Antes de sospechar de la config del Browser
+  Source (URL, dimensiones, CSS), confirmar primero: (1) el backend está
+  arriba, (2) la misma URL carga bien en un navegador normal de Windows,
+  (3) recién ahí, si OBS sigue en blanco, refrescar su caché.
+
 ## Pendiente de validar en la máquina de Seba
 
 - Comportamiento visual del overlay dentro de un Browser Source real de
