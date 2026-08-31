@@ -146,7 +146,11 @@ donde tiene más sentido junto con el resto de la automatización de OBS.
       6 estados que ya se probaron en Python (idle, SETUP, BANNING,
       RANDOMIZING, REVEAL, DONE). Probado además de punta a punta contra
       el backend real: `index.html` + el JS del build + `/api/roster`
-      servidos juntos correctamente por el mismo Flask.
+      servidos juntos correctamente por el mismo Flask. **Confirmado
+      visualmente en la máquina de Seba**: grilla completa en `SETUP`,
+      turno + ★ en `BANNING`, grises los baneados, `RANDOMIZING`, y las
+      dos cards de resultado en `REVEAL` — los 6 estados se ven
+      correctos en el navegador real, no solo en los tests.
 - [ ] Animación de baneo (personaje tachado/oscurecido en el momento que
       llega el evento) — hoy el cambio es instantáneo vía CSS, falta la
       animación real con Framer Motion.
