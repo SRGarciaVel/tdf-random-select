@@ -261,6 +261,29 @@ diseño acordado.
       `match_state_update` real. 3 tests de Vitest + 1 test end-to-end
       con backend y Socket.IO reales confirmando que seleccionar NO
       banea y que "Bloquear" sí lo hace.
+- [x] **Checkpoint HUD-5: panel dramático de pantalla completa + colores
+      personalizables.** `BroadcastSettings` suma `accent_color` y
+      `panel_background_color` (validación laxa de color CSS —
+      `#hex`/`rgba()`/`hsl()`/nombre), configurables desde "Transmisión"
+      con `QColorDialog` (con canal alfa para el fondo). El overlay
+      reestructurado: el preview de selección (checkpoint HUD-4) y el
+      reveal final ahora comparten un mismo componente
+      `DramaticCharacterPanel` — retrato recortado tipo busto
+      (`object-position: center 15%`) que sangra hasta el borde de
+      pantalla del lado correspondiente, entra deslizando desde ese
+      mismo borde, con una barra de nombre en degradado usando el color
+      de acento. Vive como hermano de la franja compacta (no anidado
+      adentro), así la franja de slots sigue visible abajo mientras el
+      panel dramático ocupa el resto de la altura. Mismo `layoutId` de
+      Framer Motion que ya compartía el preview con el slot chico, ahora
+      a la escala nueva. 16 tests de Vitest (subieron de 14: 2 nuevos de
+      colores personalizados + reveal de ambos lados a la vez). Diseño
+      acordado en el chat con dos mockups intermedios antes de programar
+      (la primera escala quedó chica, la referencia real de LCK confirmó
+      que debía ocupar casi toda la altura — normal, porque durante el
+      baneo/reveal todavía no hay gameplay corriendo, no compite por
+      espacio con el juego). Se evitó `color-mix()` en el CSS del brillo
+      pulsante por compatibilidad con versiones de CEF más viejas.
 
 ## Fase 4 — Automatización completa de OBS
 

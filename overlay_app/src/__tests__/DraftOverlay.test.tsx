@@ -26,7 +26,13 @@ const baseState: MatchState = {
   turn_deadline_ms: null,
 };
 
-const noBroadcastSettings: BroadcastSettings | null = null;
+const defaultBroadcastSettings: BroadcastSettings = {
+  tournament_label: null,
+  logo_choice: "tdf",
+  logo_url: null,
+  accent_color: "#c400ff",
+  panel_background_color: "rgba(5, 5, 6, 0.85)",
+};
 
 describe("DraftOverlay (HUD)", () => {
   it("muestra la pantalla de espera cuando no hay match_id", () => {
@@ -40,18 +46,20 @@ describe("DraftOverlay (HUD)", () => {
     expect(screen.getByText("Esperando partida...")).toBeInTheDocument();
   });
 
-  it("en SETUP dibuja bans_per_player slots vacios por jugador", () => {
+  it("en SETUP dibuja bans_per_player slots vacios por jugador, sin panel dramatico", () => {
     render(
       <DraftOverlay
         matchState={baseState}
         roster={roster}
-        broadcastSettings={noBroadcastSettings}
+        broadcastSettings={defaultBroadcastSettings}
       />,
     );
     const emptySlots = document.querySelectorAll(".ban-slot.empty");
     expect(emptySlots).toHaveLength(4); // 2 por jugador
     expect(screen.getByText("Sirxtias")).toBeInTheDocument();
     expect(screen.getByText("Drachen")).toBeInTheDocument();
+    expect(screen.queryByTestId("dramatic-left")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("dramatic-right")).not.toBeInTheDocument();
   });
 
   it("un baneo real llena el slot con el retrato y el tajo", () => {
@@ -71,7 +79,7 @@ describe("DraftOverlay (HUD)", () => {
       <DraftOverlay
         matchState={state}
         roster={roster}
-        broadcastSettings={noBroadcastSettings}
+        broadcastSettings={defaultBroadcastSettings}
       />,
     );
     expect(screen.getByTestId("ban-slot-ryu")).toBeInTheDocument();
@@ -98,7 +106,7 @@ describe("DraftOverlay (HUD)", () => {
       <DraftOverlay
         matchState={state}
         roster={roster}
-        broadcastSettings={noBroadcastSettings}
+        broadcastSettings={defaultBroadcastSettings}
       />,
     );
     expect(screen.getByTestId("skipped-marker")).toBeInTheDocument();
@@ -122,7 +130,7 @@ describe("DraftOverlay (HUD)", () => {
       <DraftOverlay
         matchState={state}
         roster={roster}
-        broadcastSettings={noBroadcastSettings}
+        broadcastSettings={defaultBroadcastSettings}
       />,
     );
     expect(screen.getByTestId("ban-slot-luke")).toBeInTheDocument();
@@ -146,11 +154,10 @@ describe("DraftOverlay (HUD)", () => {
       <DraftOverlay
         matchState={state}
         roster={roster}
-        broadcastSettings={noBroadcastSettings}
+        broadcastSettings={defaultBroadcastSettings}
       />,
     );
-    const activeSlots = document.querySelectorAll(".ban-slot.active");
-    expect(activeSlots).toHaveLength(1);
+    expect(document.querySelectorAll(".ban-slot.active")).toHaveLength(1);
   });
 
   describe("countdown", () => {
@@ -163,7 +170,7 @@ describe("DraftOverlay (HUD)", () => {
     });
 
     it("muestra la cuenta regresiva del slot activo y baja con el tiempo", () => {
-      const deadline = Date.now() + 10_000; // 10s en el futuro
+      const deadline = Date.now() + 10_000;
       const state: MatchState = {
         ...baseState,
         status: "BANNING",
@@ -174,7 +181,7 @@ describe("DraftOverlay (HUD)", () => {
         <DraftOverlay
           matchState={state}
           roster={roster}
-          broadcastSettings={noBroadcastSettings}
+          broadcastSettings={defaultBroadcastSettings}
         />,
       );
       expect(screen.getByTestId("countdown")).toHaveTextContent("10");
@@ -186,61 +193,93 @@ describe("DraftOverlay (HUD)", () => {
     });
   });
 
-  it("en REVEAL muestra el resultado de cada jugador en su lado, sin la fila de slots", () => {
-    const state: MatchState = {
-      ...baseState,
-      status: "REVEAL",
-      bans: [
-        {
-          character_id: "ryu",
-          banned_by_player_id: playerA.id,
-          was_timeout: false,
-        },
-        {
-          character_id: "luke",
-          banned_by_player_id: playerB.id,
-          was_timeout: false,
-        },
-      ],
-      current_turn_player_id: null,
-      results: { "1": "ryu", "2": "chun_li" },
-    };
-    render(
-      <DraftOverlay
-        matchState={state}
-        roster={roster}
-        broadcastSettings={noBroadcastSettings}
-      />,
-    );
+  describe("panel dramatico (checkpoint HUD-5: preview + reveal unificados)", () => {
+    it("el candidato seleccionado muestra el panel dramatico solo del lado correspondiente", () => {
+      const state: MatchState = {
+        ...baseState,
+        status: "BANNING",
+        current_turn_player_id: playerA.id,
+      };
+      render(
+        <DraftOverlay
+          matchState={state}
+          roster={roster}
+          broadcastSettings={defaultBroadcastSettings}
+          candidatePreview={{ character_id: "ryu", player_id: playerA.id }}
+        />,
+      );
+      expect(screen.getByTestId("dramatic-left")).toBeInTheDocument();
+      expect(screen.queryByTestId("dramatic-right")).not.toBeInTheDocument();
+    });
 
-    const sideLeft = document.querySelector(".player-side-left");
-    expect(sideLeft).toHaveTextContent("Sirxtias");
-    const resultLeft = screen.getByTestId("result-left");
-    expect(resultLeft.querySelector("img")).toHaveAttribute(
-      "src",
-      "/portraits/ryu.webp",
-    );
-    // el nombre no se repite adentro de la card de resultado
-    expect(resultLeft).not.toHaveTextContent("Sirxtias");
+    it("no muestra panel dramatico si candidatePreview.character_id es null", () => {
+      const state: MatchState = { ...baseState, status: "BANNING" };
+      render(
+        <DraftOverlay
+          matchState={state}
+          roster={roster}
+          broadcastSettings={defaultBroadcastSettings}
+          candidatePreview={{ character_id: null, player_id: playerA.id }}
+        />,
+      );
+      expect(screen.queryByTestId("dramatic-left")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("dramatic-right")).not.toBeInTheDocument();
+    });
 
-    const sideRight = document.querySelector(".player-side-right");
-    expect(sideRight).toHaveTextContent("Drachen");
-    const resultRight = screen.getByTestId("result-right");
-    expect(resultRight.querySelector("img")).toHaveAttribute(
-      "src",
-      "/portraits/chun_li.webp",
-    );
-    expect(resultRight).not.toHaveTextContent("Drachen");
+    it("en REVEAL muestra el panel dramatico de ambos lados con el resultado, ignorando cualquier candidatePreview viejo", () => {
+      const state: MatchState = {
+        ...baseState,
+        status: "REVEAL",
+        results: { "1": "ryu", "2": "chun_li" },
+      };
+      render(
+        <DraftOverlay
+          matchState={state}
+          roster={roster}
+          broadcastSettings={defaultBroadcastSettings}
+          candidatePreview={{ character_id: "luke", player_id: playerA.id }}
+        />,
+      );
 
-    expect(document.querySelectorAll(".ban-slot")).toHaveLength(0);
+      const left = screen.getByTestId("dramatic-left");
+      expect(left.querySelector("img")).toHaveAttribute(
+        "src",
+        "/portraits/ryu.webp",
+      );
+      expect(left).toHaveTextContent("Ryu");
+      expect(left).not.toHaveTextContent("Luke"); // el candidatePreview viejo no se cuela
+
+      const right = screen.getByTestId("dramatic-right");
+      expect(right.querySelector("img")).toHaveAttribute(
+        "src",
+        "/portraits/chun_li.webp",
+      );
+      expect(right).toHaveTextContent("Chun-Li");
+    });
+
+    it("en DONE sigue mostrando el panel dramatico del resultado", () => {
+      const state: MatchState = {
+        ...baseState,
+        status: "DONE",
+        results: { "1": "ryu", "2": "chun_li" },
+      };
+      render(
+        <DraftOverlay
+          matchState={state}
+          roster={roster}
+          broadcastSettings={defaultBroadcastSettings}
+        />,
+      );
+      expect(screen.getByTestId("dramatic-left")).toBeInTheDocument();
+      expect(screen.getByTestId("dramatic-right")).toBeInTheDocument();
+    });
   });
 
   describe("panel central", () => {
     it("usa el tournament_label de broadcast settings si esta configurado", () => {
       const settings: BroadcastSettings = {
+        ...defaultBroadcastSettings,
         tournament_label: "Randomizer TDF 2026",
-        logo_choice: "torneo",
-        logo_url: "/branding/torneo-logo.webp",
       };
       render(
         <DraftOverlay
@@ -254,16 +293,11 @@ describe("DraftOverlay (HUD)", () => {
     });
 
     it("cae al nombre real del torneo si no hay tournament_label configurado", () => {
-      const settings: BroadcastSettings = {
-        tournament_label: null,
-        logo_choice: "tdf",
-        logo_url: null,
-      };
       render(
         <DraftOverlay
           matchState={baseState}
           roster={roster}
-          broadcastSettings={settings}
+          broadcastSettings={defaultBroadcastSettings}
         />,
       );
       expect(screen.getByText("Torneo de prueba")).toBeInTheDocument();
@@ -275,70 +309,48 @@ describe("DraftOverlay (HUD)", () => {
         <DraftOverlay
           matchState={state}
           roster={roster}
-          broadcastSettings={noBroadcastSettings}
+          broadcastSettings={defaultBroadcastSettings}
         />,
       );
       expect(screen.getByText("Randomizando...")).toBeInTheDocument();
     });
   });
 
-  describe("preview de candidato (checkpoint HUD-4)", () => {
-    it("muestra el preview grande solo del lado del jugador que esta seleccionando", () => {
-      const state: MatchState = {
-        ...baseState,
-        status: "BANNING",
-        current_turn_player_id: playerA.id,
+  describe("colores personalizables", () => {
+    it("aplica accent_color y panel_background_color como custom properties del HUD", () => {
+      const settings: BroadcastSettings = {
+        ...defaultBroadcastSettings,
+        accent_color: "#00ffaa",
+        panel_background_color: "rgba(10, 10, 10, 0.9)",
       };
       render(
         <DraftOverlay
-          matchState={state}
+          matchState={baseState}
           roster={roster}
-          broadcastSettings={noBroadcastSettings}
-          candidatePreview={{ character_id: "ryu", player_id: playerA.id }}
+          broadcastSettings={settings}
         />,
       );
-      expect(screen.getByTestId("candidate-preview-left")).toBeInTheDocument();
-      expect(
-        screen.queryByTestId("candidate-preview-right"),
-      ).not.toBeInTheDocument();
+      const hudRoot = document.querySelector(".hud-root") as HTMLElement;
+      expect(hudRoot.style.getPropertyValue("--hud-accent-color")).toBe(
+        "#00ffaa",
+      );
+      expect(hudRoot.style.getPropertyValue("--hud-panel-bg-color")).toBe(
+        "rgba(10, 10, 10, 0.9)",
+      );
     });
 
-    it("no muestra preview si candidatePreview.character_id es null", () => {
-      const state: MatchState = { ...baseState, status: "BANNING" };
+    it("usa los colores por defecto del club si no hay broadcastSettings", () => {
       render(
         <DraftOverlay
-          matchState={state}
+          matchState={baseState}
           roster={roster}
-          broadcastSettings={noBroadcastSettings}
-          candidatePreview={{ character_id: null, player_id: playerA.id }}
+          broadcastSettings={null}
         />,
       );
-      expect(
-        screen.queryByTestId("candidate-preview-left"),
-      ).not.toBeInTheDocument();
-      expect(
-        screen.queryByTestId("candidate-preview-right"),
-      ).not.toBeInTheDocument();
-    });
-
-    it("no muestra preview durante el reveal, aunque llegue un candidatePreview viejo", () => {
-      const state: MatchState = {
-        ...baseState,
-        status: "REVEAL",
-        results: { "1": "ryu", "2": "luke" },
-      };
-      render(
-        <DraftOverlay
-          matchState={state}
-          roster={roster}
-          broadcastSettings={noBroadcastSettings}
-          candidatePreview={{ character_id: "chun_li", player_id: playerA.id }}
-        />,
+      const hudRoot = document.querySelector(".hud-root") as HTMLElement;
+      expect(hudRoot.style.getPropertyValue("--hud-accent-color")).toBe(
+        "#c400ff",
       );
-      expect(
-        screen.queryByTestId("candidate-preview-left"),
-      ).not.toBeInTheDocument();
-      expect(screen.getByTestId("result-left")).toBeInTheDocument();
     });
   });
 });

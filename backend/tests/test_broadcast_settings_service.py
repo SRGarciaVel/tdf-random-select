@@ -44,3 +44,36 @@ def test_update_without_new_logo_filename_keeps_previous(session: Session) -> No
         session, "Torneo", "torneo"
     )  # sin filename nuevo
     assert settings.custom_logo_filename == "logo.png"
+
+
+def test_default_colors_are_the_club_palette(session: Session) -> None:
+    settings = get_broadcast_settings(session)
+    assert settings.accent_color == "#c400ff"
+    assert settings.panel_background_color == "rgba(5, 5, 6, 0.85)"
+
+
+def test_update_accent_color_hex(session: Session) -> None:
+    settings = update_broadcast_settings(
+        session, "Torneo", "tdf", accent_color="#00ffaa"
+    )
+    assert settings.accent_color == "#00ffaa"
+
+
+def test_update_panel_background_rgba(session: Session) -> None:
+    settings = update_broadcast_settings(
+        session, "Torneo", "tdf", panel_background_color="rgba(10, 10, 10, 0.9)"
+    )
+    assert settings.panel_background_color == "rgba(10, 10, 10, 0.9)"
+
+
+def test_update_rejects_invalid_color(session: Session) -> None:
+    with pytest.raises(ValueError):
+        update_broadcast_settings(
+            session, "Torneo", "tdf", accent_color="no es un color"
+        )
+
+
+def test_update_without_color_args_keeps_previous_colors(session: Session) -> None:
+    update_broadcast_settings(session, "Torneo", "tdf", accent_color="#123456")
+    settings = update_broadcast_settings(session, "Torneo", "tdf")  # sin tocar colores
+    assert settings.accent_color == "#123456"

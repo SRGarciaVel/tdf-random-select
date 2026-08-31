@@ -25,3 +25,10 @@ class BroadcastSettings(Base):
     # despues de cambiarlo para que el overlay lo sirva (mismo criterio
     # que los retratos de download_portraits.py).
     custom_logo_filename: Mapped[str | None] = mapped_column(String, nullable=True)
+    # Personalizacion visual del HUD (checkpoint HUD-5) - colores CSS
+    # validos (hex u otro formato CSS), aplicados via custom properties
+    # en el overlay. Defaults = la paleta magenta/violeta actual del club.
+    accent_color: Mapped[str] = mapped_column(String, nullable=False, default="#c400ff")
+    panel_background_color: Mapped[str] = mapped_column(
+        String, nullable=False, default="rgba(5, 5, 6, 0.85)"
+    )

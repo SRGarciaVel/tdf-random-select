@@ -36,6 +36,8 @@ export interface BroadcastSettings {
   tournament_label: string | null;
   logo_choice: "tdf" | "torneo";
   logo_url: string | null;
+  accent_color: string;
+  panel_background_color: string;
 }
 
 // Espejo del evento Socket.IO "ban_candidate_preview" (checkpoint HUD-4).

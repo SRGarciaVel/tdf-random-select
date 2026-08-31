@@ -3,10 +3,13 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
+from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
+    QColorDialog,
     QComboBox,
     QFileDialog,
     QFormLayout,
+    QHBoxLayout,
     QLabel,
     QLineEdit,
     QMessageBox,
@@ -55,6 +58,26 @@ class BroadcastSettingsScreen(QWidget):
         self._logo_pick_button = QPushButton("Elegir logo del torneo...")
         self._logo_pick_button.clicked.connect(self._on_pick_logo_clicked)
 
+        # Personalizacion visual del HUD (checkpoint HUD-5).
+        self._accent_color = "#c400ff"
+        self._panel_background_color = "rgba(5, 5, 6, 0.85)"
+
+        self._accent_color_button = QPushButton("Elegir color de acento...")
+        self._accent_color_button.clicked.connect(self._on_pick_accent_color)
+        self._accent_color_swatch = QLabel()
+        self._accent_color_swatch.setFixedSize(28, 20)
+        accent_row = QHBoxLayout()
+        accent_row.addWidget(self._accent_color_button)
+        accent_row.addWidget(self._accent_color_swatch)
+
+        self._panel_bg_button = QPushButton("Elegir fondo de paneles...")
+        self._panel_bg_button.clicked.connect(self._on_pick_panel_background)
+        self._panel_bg_swatch = QLabel()
+        self._panel_bg_swatch.setFixedSize(28, 20)
+        panel_bg_row = QHBoxLayout()
+        panel_bg_row.addWidget(self._panel_bg_button)
+        panel_bg_row.addWidget(self._panel_bg_swatch)
+
         save_button = QPushButton("Guardar")
         save_button.clicked.connect(self._on_save_clicked)
         self._status_label = QLabel("")
@@ -64,6 +87,8 @@ class BroadcastSettingsScreen(QWidget):
         form.addRow("Logo", self._logo_choice_selector)
         form.addRow(self._logo_pick_button)
         form.addRow(self._logo_file_label)
+        form.addRow("Color de acento", accent_row)
+        form.addRow("Fondo de paneles", panel_bg_row)
 
         layout = QVBoxLayout()
         layout.addLayout(form)
@@ -91,6 +116,9 @@ class BroadcastSettingsScreen(QWidget):
             self._logo_file_label.setText(
                 f"Archivo actual: {settings.custom_logo_filename}"
             )
+        self._accent_color = settings.accent_color
+        self._panel_background_color = settings.panel_background_color
+        self._update_color_swatches()
         self._on_logo_choice_changed()
 
     def _on_logo_choice_changed(self) -> None:
@@ -118,6 +146,36 @@ class BroadcastSettingsScreen(QWidget):
             f"Archivo elegido: {destination_filename} (falta Guardar)"
         )
 
+    def _on_pick_accent_color(self) -> None:
+        color = QColorDialog.getColor(
+            QColor(self._accent_color), self, "Color de acento"
+        )
+        if color.isValid():
+            self._accent_color = color.name()  # "#rrggbb"
+            self._update_color_swatches()
+
+    def _on_pick_panel_background(self) -> None:
+        color = QColorDialog.getColor(
+            QColor(0, 0, 0),
+            self,
+            "Fondo de paneles",
+            options=QColorDialog.ColorDialogOption.ShowAlphaChannel,
+        )
+        if color.isValid():
+            self._panel_background_color = (
+                f"rgba({color.red()}, {color.green()}, {color.blue()}, "
+                f"{color.alphaF():.2f})"
+            )
+            self._update_color_swatches()
+
+    def _update_color_swatches(self) -> None:
+        self._accent_color_swatch.setStyleSheet(
+            f"background-color: {self._accent_color}; border: 1px solid #666;"
+        )
+        self._panel_bg_swatch.setStyleSheet(
+            f"background-color: {self._panel_background_color}; border: 1px solid #666;"
+        )
+
     def _on_save_clicked(self) -> None:
         try:
             with self._session_factory() as session:
@@ -126,6 +184,8 @@ class BroadcastSettingsScreen(QWidget):
                     self._label_input.text(),
                     self._logo_choice_selector.currentData(),
                     self._pending_logo_filename,
+                    accent_color=self._accent_color,
+                    panel_background_color=self._panel_background_color,
                 )
         except ValueError as exc:
             QMessageBox.warning(self, "No se pudo guardar", str(exc))

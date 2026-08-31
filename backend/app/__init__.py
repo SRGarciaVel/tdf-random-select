@@ -61,6 +61,8 @@ def create_app(session_factory: sessionmaker | None = None) -> Flask:
                     "tournament_label": settings.tournament_label,
                     "logo_choice": settings.logo_choice,
                     "logo_url": logo_url,
+                    "accent_color": settings.accent_color,
+                    "panel_background_color": settings.panel_background_color,
                 }
             )
 

@@ -38,7 +38,6 @@ function statusMessage(matchState: MatchState): string {
   return "";
 }
 
-// Mismo tajo diagonal de la Fase 3, reutilizado dentro de los slots chicos del HUD.
 function BanSlash() {
   return (
     <motion.div
@@ -135,49 +134,34 @@ function BanSlot({
   );
 }
 
-function CandidatePreviewCard({
+function DramaticCharacterPanel({
   character,
   side,
+  testId,
 }: {
   character: CharacterInfo;
   side: "left" | "right";
+  testId: string;
 }) {
   return (
     <motion.div
       key={character.id}
-      className="candidate-preview"
-      data-testid={`candidate-preview-${side}`}
-      initial={{ opacity: 0, scale: 0.85 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.85 }}
-      transition={{ duration: 0.25 }}
+      className={`dramatic-panel dramatic-panel-${side}`}
+      data-testid={testId}
+      initial={{ x: side === "left" ? "-100%" : "100%", opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: side === "left" ? "-100%" : "100%", opacity: 0 }}
+      transition={{ type: "spring", stiffness: 220, damping: 28 }}
     >
       <motion.img
         layoutId={`char-${character.id}`}
+        className="dramatic-panel-img"
         src={portraitUrl(character.id)}
         alt={character.display_name}
       />
-      <span className="candidate-preview-name">{character.display_name}</span>
-    </motion.div>
-  );
-}
-
-function ResultCard({
-  characterId,
-  side,
-}: {
-  characterId: string;
-  side: "left" | "right";
-}) {
-  return (
-    <motion.div
-      className="result-card"
-      data-testid={`result-${side}`}
-      initial={{ opacity: 0, scale: 0.6, x: side === "left" ? -40 : 40 }}
-      animate={{ opacity: 1, scale: 1, x: 0 }}
-      transition={{ type: "spring", stiffness: 260, damping: 20 }}
-    >
-      <img src={portraitUrl(characterId)} alt={characterId} />
+      <div className="dramatic-panel-name-bar">
+        <span className="dramatic-panel-name">{character.display_name}</span>
+      </div>
     </motion.div>
   );
 }
@@ -190,9 +174,6 @@ function PlayerSide({
   roster,
   isActive,
   deadlineMs,
-  showResult,
-  resultCharacterId,
-  candidateCharacter,
 }: {
   side: "left" | "right";
   player: PlayerInfo;
@@ -201,14 +182,8 @@ function PlayerSide({
   roster: RosterMap;
   isActive: boolean;
   deadlineMs: number | null;
-  showResult: boolean;
-  resultCharacterId: string | null;
-  candidateCharacter: CharacterInfo | null;
 }) {
   const slotIndices = Array.from({ length: bansPerPlayer }, (_, i) => i);
-  // El primer baneo de cada jugador ocupa el slot mas cercano al centro
-  // (indice 0) - del lado izquierdo eso significa dibujar los indices al
-  // reves (el mas alto pegado al nombre, el 0 pegado al centro).
   const orderedIndices =
     side === "left" ? [...slotIndices].reverse() : slotIndices;
 
@@ -230,21 +205,10 @@ function PlayerSide({
     </div>
   );
 
-  const resultArea = showResult && resultCharacterId && (
-    <ResultCard characterId={resultCharacterId} side={side} />
-  );
-
   return (
     <div className={`player-side player-side-${side}`}>
       {side === "left" && nameLabel}
-      <div className="player-side-stack">
-        <AnimatePresence>
-          {!showResult && candidateCharacter && (
-            <CandidatePreviewCard character={candidateCharacter} side={side} />
-          )}
-        </AnimatePresence>
-        {showResult ? resultArea : slotsRow}
-      </div>
+      {slotsRow}
       {side === "right" && nameLabel}
     </div>
   );
@@ -303,64 +267,103 @@ export default function DraftOverlay({
     matchState.status === "REVEAL" || matchState.status === "DONE";
   const results = matchState.results ?? null;
 
-  const candidateCharacterFor = (
+  const dramaticCharacterFor = (
     playerId: number | undefined,
   ): CharacterInfo | null => {
-    if (
-      !candidatePreview?.character_id ||
-      candidatePreview.player_id !== playerId
-    ) {
-      return null;
+    if (playerId === undefined) return null;
+    if (showResults) {
+      const resultId = results?.[String(playerId)];
+      return resultId ? (rosterMap[resultId] ?? null) : null;
     }
-    return rosterMap[candidatePreview.character_id] ?? null;
+    if (
+      candidatePreview?.character_id &&
+      candidatePreview.player_id === playerId
+    ) {
+      return rosterMap[candidatePreview.character_id] ?? null;
+    }
+    return null;
   };
 
+  const accentColor = broadcastSettings?.accent_color || "#c400ff";
+  const panelBackgroundColor =
+    broadcastSettings?.panel_background_color || "rgba(5, 5, 6, 0.85)";
+
+  const leftDramaticCharacter = matchState.player_a
+    ? dramaticCharacterFor(matchState.player_a.id)
+    : null;
+  const rightDramaticCharacter = matchState.player_b
+    ? dramaticCharacterFor(matchState.player_b.id)
+    : null;
+
   return (
-    <div className="hud-root">
-      {matchState.player_a && (
-        <PlayerSide
-          side="left"
-          player={matchState.player_a}
-          bans={allBans.filter(
-            (ban) => ban.banned_by_player_id === matchState.player_a?.id,
-          )}
-          bansPerPlayer={bansPerPlayer}
-          roster={rosterMap}
-          isActive={
-            matchState.status === "BANNING" &&
-            matchState.current_turn_player_id === matchState.player_a.id
-          }
-          deadlineMs={matchState.turn_deadline_ms ?? null}
-          showResult={showResults}
-          resultCharacterId={results?.[String(matchState.player_a.id)] ?? null}
-          candidateCharacter={candidateCharacterFor(matchState.player_a.id)}
-        />
-      )}
+    <div
+      className="hud-root"
+      style={
+        {
+          "--hud-accent-color": accentColor,
+          "--hud-panel-bg-color": panelBackgroundColor,
+        } as React.CSSProperties
+      }
+    >
+      <AnimatePresence>
+        {leftDramaticCharacter && (
+          <DramaticCharacterPanel
+            character={leftDramaticCharacter}
+            side="left"
+            testId="dramatic-left"
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {rightDramaticCharacter && (
+          <DramaticCharacterPanel
+            character={rightDramaticCharacter}
+            side="right"
+            testId="dramatic-right"
+          />
+        )}
+      </AnimatePresence>
 
-      <CenterPanel
-        broadcastSettings={broadcastSettings}
-        matchState={matchState}
-      />
+      <div className="hud-bottom-bar">
+        {matchState.player_a && (
+          <PlayerSide
+            side="left"
+            player={matchState.player_a}
+            bans={allBans.filter(
+              (ban) => ban.banned_by_player_id === matchState.player_a?.id,
+            )}
+            bansPerPlayer={bansPerPlayer}
+            roster={rosterMap}
+            isActive={
+              matchState.status === "BANNING" &&
+              matchState.current_turn_player_id === matchState.player_a.id
+            }
+            deadlineMs={matchState.turn_deadline_ms ?? null}
+          />
+        )}
 
-      {matchState.player_b && (
-        <PlayerSide
-          side="right"
-          player={matchState.player_b}
-          bans={allBans.filter(
-            (ban) => ban.banned_by_player_id === matchState.player_b?.id,
-          )}
-          bansPerPlayer={bansPerPlayer}
-          roster={rosterMap}
-          isActive={
-            matchState.status === "BANNING" &&
-            matchState.current_turn_player_id === matchState.player_b.id
-          }
-          deadlineMs={matchState.turn_deadline_ms ?? null}
-          showResult={showResults}
-          resultCharacterId={results?.[String(matchState.player_b.id)] ?? null}
-          candidateCharacter={candidateCharacterFor(matchState.player_b.id)}
+        <CenterPanel
+          broadcastSettings={broadcastSettings}
+          matchState={matchState}
         />
-      )}
+
+        {matchState.player_b && (
+          <PlayerSide
+            side="right"
+            player={matchState.player_b}
+            bans={allBans.filter(
+              (ban) => ban.banned_by_player_id === matchState.player_b?.id,
+            )}
+            bansPerPlayer={bansPerPlayer}
+            roster={rosterMap}
+            isActive={
+              matchState.status === "BANNING" &&
+              matchState.current_turn_player_id === matchState.player_b.id
+            }
+            deadlineMs={matchState.turn_deadline_ms ?? null}
+          />
+        )}
+      </div>
     </div>
   );
 }
