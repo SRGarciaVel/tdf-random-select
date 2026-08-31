@@ -1,11 +1,12 @@
 """Roster de personajes de Street Fighter 6.
 
-IMPORTANTE: revisar contra el roster oficial vigente antes de la Fase 3
-(retratos de Capcom) - la lista de personajes de SF6 crece con cada
-season pass y esta puede haber quedado desactualizada. Solo el campo
-"id" importa para la logica del draft (DraftService); "display_name" es
-para UI y "portrait_filename" se completa en la Fase 3 cuando se agregan
-los retratos oficiales a overlay_app/public/portraits/.
+Confirmado contra el roster oficial vigente el 31-08-2026 (31 personajes:
+18 base + 4 Year 1 + 4 Year 2 + 4 Year 3 + Yasmine de Year 4, lanzada el
+03-08-2026). Arjun, Tifa y Bosch (resto de Year 4) todavia no salen -
+agregar cuando se lancen. Solo el campo "id" importa para la logica del
+draft (DraftService); "display_name" es para UI y "portrait_filename" se
+completa en la Fase 3 cuando se agregan los retratos oficiales a
+overlay_app/public/portraits/.
 """
 
 from __future__ import annotations
@@ -46,6 +47,11 @@ SF6_ROSTER: list[CharacterEntry] = [
     {"id": "terry", "display_name": "Terry", "portrait_filename": None},
     {"id": "mai", "display_name": "Mai", "portrait_filename": None},
     {"id": "elena", "display_name": "Elena", "portrait_filename": None},
+    {"id": "sagat", "display_name": "Sagat", "portrait_filename": None},
+    {"id": "c_viper", "display_name": "C. Viper", "portrait_filename": None},
+    {"id": "alex", "display_name": "Alex", "portrait_filename": None},
+    {"id": "ingrid", "display_name": "Ingrid", "portrait_filename": None},
+    {"id": "yasmine", "display_name": "Yasmine", "portrait_filename": None},
 ]
 
 CHARACTER_IDS: list[str] = [entry["id"] for entry in SF6_ROSTER]
