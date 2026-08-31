@@ -5,6 +5,7 @@ from backend.app.models.base import (
     get_session_factory,
     init_db,
 )
+from backend.app.models.broadcast_settings import BroadcastSettings
 from backend.app.models.obs_settings import ObsSettings
 from backend.app.models.player import CharacterTag, Player
 from backend.app.models.tournament import Match, MatchBan, MatchResult, Tournament
@@ -12,6 +13,7 @@ from backend.app.models.tournament import Match, MatchBan, MatchResult, Tourname
 __all__ = [
     "DEFAULT_DB_PATH",
     "Base",
+    "BroadcastSettings",
     "CharacterTag",
     "Match",
     "MatchBan",

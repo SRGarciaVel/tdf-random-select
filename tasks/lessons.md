@@ -75,6 +75,25 @@
   del mismo refresh que hace que la entidad desaparezca. Conviene emitir
   el estado final de forma explicita, separado del refresh de la UI.
 
+## QMessageBox modal cuelga los tests offscreen
+
+- **`QMessageBox.information()`/`.warning()`/`.critical()` son modales
+  bloqueantes** (`.exec()` interno) - esperan un clic real. En
+  `QT_QPA_PLATFORM=offscreen` no hay nadie para hacer ese clic, asi que
+  el proceso se queda colgado para siempre (el comando del test hay que
+  matarlo a mano, no falla con un error legible). Pasó con
+  `BroadcastSettingsScreen`: tenía un `QMessageBox.information()` en el
+  camino feliz de "Guardar" y el test offscreen se colgó sin ningún
+  mensaje de error.
+- **Regla para este proyecto**: usar una `QLabel` de estado (mismo
+  patrón que `SetupScreen._result_label`) para confirmaciones de
+  camino feliz, no un modal - se puede probar sin bloquear, y además es
+  menos intrusivo para el staff durante un stream en vivo. Los
+  `QMessageBox.warning()` en caminos de error se mantienen (son
+  aceptables ahí, el staff necesita confirmar que vio el error), pero
+  hay que recordar mockearlos o evitarlos si algún test offscreen llega
+  a ejercitar esa ruta.
+
 ## Browser Source de OBS: cachea una carga fallida
 
 - **Si agregas el Browser Source antes de que el backend esté arriba**

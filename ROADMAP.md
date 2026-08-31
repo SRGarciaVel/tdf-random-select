@@ -195,9 +195,22 @@ diseño acordado.
       tests): arranca solo cuando el turno cambia, se detiene fuera de
       `BANNING`, y llama a `resolve_ban_timeout()` si se agota. Probado
       con un `QTimer` real acortado a 200ms.
-- [ ] **Checkpoint HUD-2**: pantalla de "Broadcast Settings" en el panel
-      (nombre del torneo a mostrar, logo del torneo o el de TDF por
-      defecto) - configurable por el CEO.
+- [x] **Checkpoint HUD-2**: pantalla "Transmisión" en el panel -
+      `BroadcastSettings` (fila única: `tournament_label`, `logo_choice`
+      "tdf"/"torneo", `custom_logo_filename`), servida al overlay vía
+      `/api/broadcast-settings`. Subir un logo custom lo copia a
+      `overlay_app/public/branding/torneo-logo.<ext>` (requiere
+      `npm run build` después, mismo criterio que los retratos). El
+      logo "tdf" por defecto necesita que Seba agregue
+      `overlay_app/public/branding/tdf-logo.webp` a mano (no existe
+      todavía en el repo — no tengo el archivo real del club). 9 tests
+      nuevos (servicio + endpoint + UI real con un archivo de logo
+      sintético). De paso: `create_app()` ahora recibe el
+      `session_factory` compartido en vez de abrir un engine nuevo por
+      request, y se encontró y corrigió un bug real — un
+      `QMessageBox.information()` bloqueante en el camino feliz de
+      "Guardar" colgaba cualquier test offscreen sin error legible (ver
+      `tasks/lessons.md`); se reemplazó por una `QLabel` de estado.
 - [ ] **Checkpoint HUD-3**: overlay rediseñado - franja inferior,
       nombres en los extremos, slots de baneo ordenados centro→afuera
       por jugador (el primer baneo de cada jugador ocupa el slot más

@@ -14,13 +14,13 @@ BACKEND_HOST = "localhost"
 BACKEND_PORT = 5001
 
 
-def _run_backend() -> None:
+def _run_backend(session_factory) -> None:
     # allow_unsafe_werkzeug: el server de desarrollo de Flask-SocketIO no
     # está pensado para correr fuera del thread principal por defecto.
     # Es intencional acá porque el thread principal lo ocupa Qt (ver
     # SPECS.md §7) — no es apto para producción expuesta a internet, pero
     # esto solo escucha en localhost para el Browser Source de OBS.
-    app = create_app()
+    app = create_app(session_factory)
     socketio.run(
         app,
         host=BACKEND_HOST,
@@ -36,7 +36,9 @@ def main() -> int:
     init_db(engine)  # idempotente - solo crea tablas que no existen
     session_factory = get_session_factory(engine)
 
-    backend_thread = threading.Thread(target=_run_backend, daemon=True)
+    backend_thread = threading.Thread(
+        target=_run_backend, args=(session_factory,), daemon=True
+    )
     backend_thread.start()
 
     app = QApplication(sys.argv)
