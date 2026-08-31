@@ -1,0 +1,21 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Node / Vite
+overlay_app/node_modules/
+overlay_app/build/
+
+# PyInstaller
+build/
+dist/
+*.spec
+
+# Datos locales del draft (SQLite) y config sensible
+*.db
+.env
+
+# Editor
+.vscode/
+.idea/
