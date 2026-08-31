@@ -52,6 +52,25 @@ describe("DraftOverlay", () => {
     expect(screen.getByTestId("character-luke")).not.toHaveClass("banned");
   });
 
+  it("el tajo diagonal solo aparece en los personajes baneados", () => {
+    const state: MatchState = {
+      match_id: 3,
+      status: "BANNING",
+      player_a: playerA,
+      player_b: playerB,
+      banned_character_ids: ["ryu"],
+      current_turn_player_id: playerB.id,
+      results: null,
+    };
+    render(<DraftOverlay matchState={state} roster={roster} />);
+    expect(
+      screen.getByTestId("character-ryu").querySelector(".ban-slash"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("character-luke").querySelector(".ban-slash"),
+    ).not.toBeInTheDocument();
+  });
+
   it("en RANDOMIZING muestra el mensaje de randomizando", () => {
     const state: MatchState = {
       match_id: 3,

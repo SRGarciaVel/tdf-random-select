@@ -28,9 +28,7 @@
   flex-direction: column;
   align-items: center;
   gap: 0.25rem;
-  transition:
-    opacity 0.3s ease,
-    filter 0.3s ease;
+  position: relative;
 }
 
 .character-card img {
@@ -41,13 +39,27 @@
   border: 2px solid #444;
 }
 
-.character-card.banned {
-  opacity: 0.35;
-  filter: grayscale(1);
-}
-
 .character-card.banned img {
   border-color: #900;
+}
+
+.ban-slash {
+  position: absolute;
+  top: 50%;
+  left: -10%;
+  width: 120%;
+  height: 6px;
+  margin-top: -3px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #ff2d2d 20%,
+    #fff 50%,
+    #ff2d2d 80%,
+    transparent
+  );
+  transform-origin: center;
+  pointer-events: none;
 }
 
 .character-name {
@@ -75,6 +87,17 @@
   object-fit: cover;
   border-radius: 8px;
   border: 3px solid #c400ff;
+  animation: pulse-glow 1.8s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 20px 4px rgba(196, 0, 255, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 35px 10px rgba(196, 0, 255, 0.9);
+  }
 }
 
 .result-player-name {

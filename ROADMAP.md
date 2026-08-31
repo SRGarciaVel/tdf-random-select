@@ -151,11 +151,18 @@ donde tiene más sentido junto con el resto de la automatización de OBS.
       turno + ★ en `BANNING`, grises los baneados, `RANDOMIZING`, y las
       dos cards de resultado en `REVEAL` — los 6 estados se ven
       correctos en el navegador real, no solo en los tests.
-- [ ] Animación de baneo (personaje tachado/oscurecido en el momento que
-      llega el evento) — hoy el cambio es instantáneo vía CSS, falta la
-      animación real con Framer Motion.
-- [ ] Animación de reveal tipo LoL para el personaje asignado a cada
-      jugador.
+- [x] Animación de baneo: desaturado + pulso de escala + tajo diagonal
+      rojo/blanco que cruza el retrato al confirmarse, con Framer
+      Motion. Corre una sola vez por baneo (remount vía `key`), no se
+      repite en re-renders posteriores del mismo match. 7 tests
+      (incluye uno específico: el tajo solo aparece en el personaje
+      recién baneado, no en los demás).
+- [x] Animación de reveal: cada resultado entra con zoom-in + fade desde
+      abajo (spring, no lineal), escalonado entre Jugador A y B
+      (delay 0 / 0.15s), con un aura magenta pulsante alrededor del
+      retrato mientras está en pantalla (CSS `@keyframes`, glow
+      continuo). Fase 3 completa: grilla, contrato de eventos,
+      confirmación visual en Browser Source real, y las dos animaciones.
 - [x] Verificación de que el overlay se ve bien dentro de un Browser
       Source real de OBS (dimensiones, fondo transparente donde
       corresponda). **Confirmado**: la grilla se ve completa y el fondo
