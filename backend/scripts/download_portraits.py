@@ -35,7 +35,21 @@ SITE_SLUG_OVERRIDES: dict[str, str] = {
 
 OUTPUT_DIR = Path(__file__).resolve().parents[3] / "overlay_app" / "public" / "portraits"
 BASE_URL = "https://www.streetfighter.com/6/assets/images/character"
+PAGE_BASE_URL = "https://www.streetfighter.com/6/es-us/character"
 REQUEST_DELAY_SECONDS = 1.0  # no golpear el sitio de Capcom sin pausas entre pedidos
+
+# El CDN de Capcom devuelve 403 a la firma por defecto de requests
+# ("python-requests/x.y") - no es un desafio anti-bot interactivo (no hay
+# Turnstile ni nada que resolver, a diferencia de Buckler's Boot Camp),
+# es un filtro de CDN por User-Agent/Referer que cualquier navegador
+# manda solo. Estos headers imitan eso.
+REQUEST_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
+    ),
+    "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+}
 
 
 def site_slug(character_id: str) -> str:
@@ -51,7 +65,11 @@ def download_portrait(character_id: str) -> bool:
         print(f"  {character_id}: ya existe, se salta.")
         return True
 
-    response = requests.get(url, timeout=10)
+    response = requests.get(
+        url,
+        headers={**REQUEST_HEADERS, "Referer": f"{PAGE_BASE_URL}/{slug}"},
+        timeout=10,
+    )
     if response.status_code != 200:
         print(f"  {character_id}: FALLO ({response.status_code}) - {url}")
         return False
