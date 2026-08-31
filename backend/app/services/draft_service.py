@@ -8,6 +8,17 @@ from backend.app.data.sf6_roster import CHARACTER_IDS
 from backend.app.models import Match, MatchBan, MatchResult
 
 
+def list_open_matches(session: Session) -> list[Match]:
+    """Matches que todavia tienen algo pendiente (no DONE), para elegir
+    cual seguir trabajando en la pantalla de baneo."""
+    return list(
+        session.query(Match)
+        .filter(Match.status != "DONE")
+        .order_by(Match.id.desc())
+        .all()
+    )
+
+
 class DraftError(Exception):
     """Base de cualquier violacion de la maquina de estados del draft."""
 

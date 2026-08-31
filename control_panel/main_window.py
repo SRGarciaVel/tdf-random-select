@@ -3,6 +3,7 @@ from __future__ import annotations
 from PyQt6.QtWidgets import QMainWindow, QTabWidget
 from sqlalchemy.orm import sessionmaker
 
+from control_panel.screens.banning_screen import BanningScreen
 from control_panel.screens.diagnostics_screen import DiagnosticsScreen
 from control_panel.screens.players_screen import PlayersScreen
 from control_panel.screens.setup_screen import SetupScreen
@@ -25,5 +26,6 @@ class MainWindow(QMainWindow):
         tabs = QTabWidget()
         tabs.addTab(PlayersScreen(session_factory), "Jugadores")
         tabs.addTab(SetupScreen(session_factory), "Setup")
+        tabs.addTab(BanningScreen(session_factory), "Baneo")
         tabs.addTab(DiagnosticsScreen(), "Diagnóstico")
         self.setCentralWidget(tabs)

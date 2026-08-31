@@ -95,19 +95,23 @@ panel y el overlay todavía sean mínimos).
       `character_tag_service.py`. Probado con una simulación completa de
       la UI real (crear 2 jugadores, torneo nuevo, tags, match) contra
       SQLite real — no solo los servicios por separado.
-- [ ] Pantalla de baneo en vivo: grilla de personajes (roster de
-      `sf6_roster.py`), resalta si el personaje está en `character_tags`
-      del rival, indica de quién es el turno (`DraftService.current_turn_player_id`),
-      dispara `ban_character` al hacer clic, avanza sola a
-      `RANDOMIZING`/`REVEAL` cuando corresponde.
+- [x] Pantalla de baneo en vivo: pestaña "Baneo" — selector de partidas
+      abiertas, elegir quién banea primero, grilla de 26 personajes con
+      ★ marcando los personajes fuertes del rival (`character_tags`),
+      turno indicado en pantalla, clic para banear (avanza sola por
+      `SETUP → BANNING → RANDOMIZING` al completar los baneos), botón
+      "Randomizar" y "Completar reveal" hasta `DONE`. Probado con clics
+      reales sobre los botones de la grilla, de punta a punta, contra
+      SQLite real (no simulando las llamadas al servicio directo, sino
+      el click real de cada botón).
 - [ ] Pantalla de configuración de OBS: reemplaza las env vars
       `OBS_HOST`/`OBS_PORT`/`OBS_PASSWORD` del walking skeleton por la
       tabla `obs_settings` real (host, puerto, password, nombre de la
       escena de draft).
 - [ ] Botones "Iniciar Baneo" y override manual de "Volver a escena
       anterior", disparando `obs_service` en paralelo al evento de
-      Socket.IO (esto último recién tiene sentido una vez que la
-      pantalla de baneo emite esos eventos, ver Fase 3/4).
+      Socket.IO — pendiente para la Fase 4, una vez que la pantalla de
+      Baneo emita esos eventos hacia el overlay real.
 
 ## Fase 3 — Overlay real (React + Framer Motion)
 

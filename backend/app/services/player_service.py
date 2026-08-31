@@ -5,6 +5,10 @@ from sqlalchemy.orm import Session
 from backend.app.models import Player
 
 
+def get_player(session: Session, player_id: int) -> Player | None:
+    return session.get(Player, player_id)
+
+
 def add_player(
     session: Session, display_name: str, cfn_id: str | None = None
 ) -> Player:
