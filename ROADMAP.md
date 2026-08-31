@@ -103,15 +103,13 @@ panel y el overlay todavía sean mínimos).
       "Randomizar" y "Completar reveal" hasta `DONE`. Probado con clics
       reales sobre los botones de la grilla, de punta a punta, contra
       SQLite real (no simulando las llamadas al servicio directo, sino
-      el click real de cada botón).
-- [ ] Pantalla de configuración de OBS: reemplaza las env vars
-      `OBS_HOST`/`OBS_PORT`/`OBS_PASSWORD` del walking skeleton por la
-      tabla `obs_settings` real (host, puerto, password, nombre de la
-      escena de draft).
-- [ ] Botones "Iniciar Baneo" y override manual de "Volver a escena
-      anterior", disparando `obs_service` en paralelo al evento de
-      Socket.IO — pendiente para la Fase 4, una vez que la pantalla de
-      Baneo emita esos eventos hacia el overlay real.
+      el click real de cada botón). **Confirmado funcionando en la
+      máquina de Seba** (match real AckermanFG vs BazthyFreeman, de
+      SETUP a DONE).
+
+Fase 2 completa — lo que falta de OBS (pantalla de configuración real y
+el disparo de `obs_service` desde "Iniciar Baneo") se movió a la Fase 4,
+donde tiene más sentido junto con el resto de la automatización de OBS.
 
 ## Fase 3 — Overlay real (React + Framer Motion)
 
@@ -126,6 +124,12 @@ panel y el overlay todavía sean mínimos).
 
 ## Fase 4 — Automatización completa de OBS
 
+- [ ] Pantalla de configuración de OBS en el panel: reemplaza las env
+      vars `OBS_HOST`/`OBS_PORT`/`OBS_PASSWORD` del walking skeleton por
+      la tabla `obs_settings` real (host, puerto, password, nombre de la
+      escena de draft).
+- [ ] Botón "Iniciar Baneo" dispara en paralelo el evento de Socket.IO
+      hacia el overlay (Fase 3) y `obs_service.switch_to_draft_scene()`.
 - [ ] `obs_service` guarda la escena activa antes de `SetCurrentProgramScene`
       hacia la escena de draft.
 - [ ] Vuelta automática a la escena guardada al terminar `REVEAL`, con
