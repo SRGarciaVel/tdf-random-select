@@ -168,6 +168,41 @@ donde tiene más sentido junto con el resto de la automatización de OBS.
       corresponda). **Confirmado**: la grilla se ve completa y el fondo
       transparente compone bien sobre la escena.
 
+## Fase 3.5 — Rediseño HUD del overlay (referencia LCK/broadcast real)
+
+**Objetivo:** reemplazar la grilla centrada por una franja tipo HUD de
+torneo real (nombres en los extremos, slots de baneo centro→afuera por
+jugador, panel central configurable, timer de 30s por baneo con
+auto-baneo al agotarse, reveal final en los extremos en vez de al
+centro). Ver conversación del 31-08-2026 para el detalle completo del
+diseño acordado.
+
+- [x] **Checkpoint HUD-1: timer de 30s + auto-baneo.**
+      `DraftService.auto_ban_random_character()` banea al azar en nombre
+      de quien tenga el turno, reutilizando `ban_character()` (misma
+      validación, mismo camino de auto-transición de estado) - 5 tests
+      contra SQLite real. `BanningScreen` maneja un `QTimer` real
+      (30s en producción, parámetro `timer_ms` configurable para poder
+      acortarlo en tests): arranca solo cuando el turno efectivamente
+      cambia (no en cada refresh sin motivo), se detiene fuera de
+      `BANNING`, y dispara `auto_ban_random_character()` si se agota.
+      El `deadline` se agrega al payload que recibe el overlay
+      (`turn_deadline_ms`) para que el HUD pueda dibujar la cuenta
+      regresiva sin necesitar un tick de socket por segundo. Probado
+      con un `QTimer` real acortado a 200ms (no simulado): arranca al
+      iniciar el baneo, se reinicia con cada baneo manual, y auto-banea
+      de verdad al agotarse.
+- [ ] **Checkpoint HUD-2**: pantalla de "Broadcast Settings" en el panel
+      (nombre del torneo a mostrar, logo del torneo o el de TDF por
+      defecto) - configurable por el CEO.
+- [ ] **Checkpoint HUD-3**: overlay rediseñado - franja inferior,
+      nombres en los extremos, slots de baneo ordenados centro→afuera
+      por jugador (el primer baneo de cada jugador ocupa el slot más
+      cercano al centro), panel central con lo definido en HUD-2, aro/
+      degradado pulsante + cuenta regresiva visual en el slot activo.
+- [ ] **Checkpoint HUD-4**: reveal final movido a los extremos (lado de
+      cada jugador), reemplazando el panel centrado de la Fase 3.
+
 ## Fase 4 — Automatización completa de OBS
 
 - [ ] Pantalla de configuración de OBS en el panel: reemplaza las env

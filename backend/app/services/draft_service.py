@@ -172,6 +172,29 @@ class DraftService:
         self._session.commit()
         return match
 
+    def auto_ban_random_character(self, match_id: int) -> Match:
+        """Banea un personaje al azar en nombre de quien tenga el turno -
+        se usa cuando se agota el timer de 30s sin baneo manual (HUD de
+        baneo). Reutiliza ban_character() en vez de duplicar la
+        validacion de turno/estado.
+        """
+        match = self._get_match(match_id)
+        if match.status != "BANNING":
+            raise InvalidStateError(
+                f"No se puede auto-banear desde el estado {match.status}."
+            )
+        current_player_id = self.current_turn_player_id(match)
+        banned_ids = {ban.character_id for ban in match.bans}
+        pool = [
+            character_id
+            for character_id in CHARACTER_IDS
+            if character_id not in banned_ids
+        ]
+        if not pool:
+            raise DraftError("No quedan personajes disponibles para auto-banear.")
+        character_id = random.choice(pool)
+        return self.ban_character(match_id, character_id, current_player_id)
+
     def _get_match(self, match_id: int) -> Match:
         match = self._session.get(Match, match_id)
         if match is None:

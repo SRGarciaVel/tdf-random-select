@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import datetime as dt
+
+from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import (
     QComboBox,
     QGridLayout,
@@ -27,6 +30,7 @@ from control_panel.overlay_bridge import OverlayBridge
 
 CHARACTER_DISPLAY_NAMES = {entry["id"]: entry["display_name"] for entry in SF6_ROSTER}
 GRID_COLUMNS = 6
+BAN_TIMER_MS = 30_000  # 30s por baneo (HUD) - parametro para poder acortarlo en tests
 
 
 class BanningScreen(QWidget):
@@ -38,12 +42,21 @@ class BanningScreen(QWidget):
     la Fase 4 junto con la pantalla real de configuracion de OBS.
     """
 
-    def __init__(self, session_factory: sessionmaker) -> None:
+    def __init__(
+        self, session_factory: sessionmaker, timer_ms: int = BAN_TIMER_MS
+    ) -> None:
         super().__init__()
         self._session_factory = session_factory
         self._match_id: int | None = None
         self._character_buttons: dict[str, QPushButton] = {}
         self._overlay_bridge = OverlayBridge()
+
+        self._timer_ms = timer_ms
+        self._ban_timer = QTimer(self)
+        self._ban_timer.setSingleShot(True)
+        self._ban_timer.timeout.connect(self._on_ban_timeout)
+        self._current_turn_key: tuple[int, int] | None = None  # (match_id, player_id)
+        self._turn_deadline: dt.datetime | None = None
 
         self._match_selector = QComboBox()
         self._match_selector.currentIndexChanged.connect(self._on_match_selected)
@@ -118,6 +131,7 @@ class BanningScreen(QWidget):
 
     def _refresh_state(self) -> None:
         if self._match_id is None:
+            self._stop_ban_timer()
             self._overlay_bridge.emit_match_state({"match_id": None})
             self._status_label.setText("Elige una partida.")
             for button in self._character_buttons.values():
@@ -157,6 +171,11 @@ class BanningScreen(QWidget):
 
             state_payload = build_match_state_payload(session, self._match_id)
 
+        self._sync_ban_timer(status, current_turn_id)
+        if self._turn_deadline is not None:
+            state_payload["turn_deadline_ms"] = int(
+                self._turn_deadline.timestamp() * 1000
+            )
         self._overlay_bridge.emit_match_state(state_payload)
 
         self._first_banner_selector.blockSignals(True)
@@ -265,4 +284,42 @@ class BanningScreen(QWidget):
         # seleccionado - sin este emit explicito, el overlay nunca ve el
         # estado final, solo ve el match desaparecer (ver tasks/lessons.md).
         self._overlay_bridge.emit_match_state(final_payload)
+        self._reload_matches()
+
+    def _sync_ban_timer(self, status: str, current_turn_id: int | None) -> None:
+        """Arranca el timer de 30s solo cuando el turno realmente cambio -
+        evita reiniciarlo en cada _refresh_state() sin motivo (ej. click
+        en "Refrescar partidas" sin haber baneado nada nuevo)."""
+        if status != "BANNING" or current_turn_id is None:
+            self._stop_ban_timer()
+            return
+
+        turn_key = (self._match_id, current_turn_id)
+        if turn_key == self._current_turn_key:
+            return  # mismo turno de antes, no reiniciar la cuenta regresiva
+
+        self._current_turn_key = turn_key
+        self._turn_deadline = dt.datetime.now(dt.UTC) + dt.timedelta(
+            milliseconds=self._timer_ms
+        )
+        self._ban_timer.start(self._timer_ms)
+
+    def _stop_ban_timer(self) -> None:
+        self._ban_timer.stop()
+        self._current_turn_key = None
+        self._turn_deadline = None
+
+    def _on_ban_timeout(self) -> None:
+        """Se agotaron los 30s sin baneo manual - banea al azar en nombre
+        del jugador que tenia el turno (HUD de baneo)."""
+        if self._match_id is None:
+            return
+        try:
+            with self._session_factory() as session:
+                DraftService(session).auto_ban_random_character(self._match_id)
+        except DraftError:
+            # el estado pudo haber cambiado entre que arranco el timer y
+            # que disparo (ej. el staff ya baneo a mano justo antes) - no
+            # es un error real, solo se ignora y se refresca el estado.
+            pass
         self._reload_matches()
