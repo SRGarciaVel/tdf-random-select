@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+
 import socketio as socketio_client
 from PyQt6.QtWidgets import QLabel, QMainWindow, QMessageBox, QPushButton, QVBoxLayout, QWidget
 
@@ -21,7 +23,10 @@ class MainWindow(QMainWindow):
         self.resize(420, 220)
 
         self._sio = socketio_client.Client()
-        self._obs = ObsService()
+        obs_host = os.environ.get("OBS_HOST", "localhost")
+        obs_port = int(os.environ.get("OBS_PORT", "4455"))
+        obs_password = os.environ.get("OBS_PASSWORD", "")
+        self._obs = ObsService(host=obs_host, port=obs_port, password=obs_password)
 
         self._status_label = QLabel("Sin conexión al backend todavía.")
         ping_button = QPushButton("Ping")
