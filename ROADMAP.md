@@ -76,16 +76,38 @@ panel y el overlay todavía sean mínimos).
 
 ## Fase 2 — Panel de control real (PyQt6)
 
-- [ ] Pantalla de setup: elegir jugadores, cantidad de baneos, cargar
-      `character_tags` por jugador.
-- [ ] Pantalla de baneo en vivo: grilla de personajes, resalta el
-      personaje si está en `character_tags` del rival, indica de quién
-      es el turno.
-- [ ] Pantalla de configuración de OBS (host, puerto, password, nombre
-      de la escena de draft) persistida en `obs_settings`.
+- [x] Shell de navegación (`QTabWidget`) reemplazando la ventana única
+      del walking skeleton. `MainWindow` recibe `session_factory` por
+      constructor (engine/schema se crean una sola vez en `main.py`) y
+      se lo pasa a cada pestaña — nada de estado global.
+- [x] Pantalla "Jugadores": alta/listado/baja contra SQLite real
+      (`backend/app/services/player_service.py`, con tests). Base para
+      elegir Jugador A/B en el setup del match.
+- [x] Pantalla "Diagnóstico": el Ping + Test OBS del walking skeleton,
+      migrado a su propia pestaña — se mantiene porque sigue sirviendo
+      para diagnosticar conexión sin armar un match real.
+- [x] Pantalla de setup del match: pestaña "Setup" — elegir un torneo
+      existente o crear uno nuevo (nombre + `bans_per_player`), elegir
+      Jugador A/B desde la lista de jugadores, cargar `character_tags`
+      por jugador (agregar/quitar con doble clic), y crear el `Match`
+      (queda en estado `SETUP`, listo para la pantalla de baneo).
+      Servicios nuevos con tests: `tournament_service.py`,
+      `character_tag_service.py`. Probado con una simulación completa de
+      la UI real (crear 2 jugadores, torneo nuevo, tags, match) contra
+      SQLite real — no solo los servicios por separado.
+- [ ] Pantalla de baneo en vivo: grilla de personajes (roster de
+      `sf6_roster.py`), resalta si el personaje está en `character_tags`
+      del rival, indica de quién es el turno (`DraftService.current_turn_player_id`),
+      dispara `ban_character` al hacer clic, avanza sola a
+      `RANDOMIZING`/`REVEAL` cuando corresponde.
+- [ ] Pantalla de configuración de OBS: reemplaza las env vars
+      `OBS_HOST`/`OBS_PORT`/`OBS_PASSWORD` del walking skeleton por la
+      tabla `obs_settings` real (host, puerto, password, nombre de la
+      escena de draft).
 - [ ] Botones "Iniciar Baneo" y override manual de "Volver a escena
       anterior", disparando `obs_service` en paralelo al evento de
-      Socket.IO.
+      Socket.IO (esto último recién tiene sentido una vez que la
+      pantalla de baneo emite esos eventos, ver Fase 3/4).
 
 ## Fase 3 — Overlay real (React + Framer Motion)
 

@@ -5,6 +5,7 @@ from sqlalchemy.orm import sessionmaker
 
 from control_panel.screens.diagnostics_screen import DiagnosticsScreen
 from control_panel.screens.players_screen import PlayersScreen
+from control_panel.screens.setup_screen import SetupScreen
 
 
 class MainWindow(QMainWindow):
@@ -23,5 +24,6 @@ class MainWindow(QMainWindow):
 
         tabs = QTabWidget()
         tabs.addTab(PlayersScreen(session_factory), "Jugadores")
+        tabs.addTab(SetupScreen(session_factory), "Setup")
         tabs.addTab(DiagnosticsScreen(), "Diagnóstico")
         self.setCentralWidget(tabs)
