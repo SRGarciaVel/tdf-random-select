@@ -282,6 +282,8 @@ def build_match_state_payload(session: Session, match_id: int | None) -> dict:
         "status": match.status,
         "player_a": {"id": player_a.id, "display_name": player_a.display_name},
         "player_b": {"id": player_b.id, "display_name": player_b.display_name},
+        "tournament_name": match.tournament.name,
+        "bans_per_player": match.tournament.bans_per_player,
         "banned_character_ids": banned_ids,
         "bans": bans,
         "current_turn_player_id": current_turn_player_id,

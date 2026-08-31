@@ -24,6 +24,7 @@ def test_payload_in_setup_state(
     payload = build_match_state_payload(session, match.id)
     assert payload["match_id"] == match.id
     assert payload["status"] == "SETUP"
+    assert payload["bans_per_player"] == tournament.bans_per_player
     assert payload["player_a"] == {"id": player_a.id, "display_name": "Jugador A"}
     assert payload["player_b"] == {"id": player_b.id, "display_name": "Jugador B"}
     assert payload["banned_character_ids"] == []

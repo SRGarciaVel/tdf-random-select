@@ -1,7 +1,7 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { act, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import DraftOverlay from "../DraftOverlay";
-import type { CharacterInfo, MatchState } from "../types";
+import type { BroadcastSettings, CharacterInfo, MatchState } from "../types";
 
 const roster: CharacterInfo[] = [
   { id: "ryu", display_name: "Ryu", portrait_filename: null },
@@ -12,120 +12,268 @@ const roster: CharacterInfo[] = [
 const playerA = { id: 1, display_name: "Sirxtias" };
 const playerB = { id: 2, display_name: "Drachen" };
 
-describe("DraftOverlay", () => {
+const baseState: MatchState = {
+  match_id: 3,
+  status: "SETUP",
+  player_a: playerA,
+  player_b: playerB,
+  tournament_name: "Torneo de prueba",
+  bans_per_player: 2,
+  banned_character_ids: [],
+  bans: [],
+  current_turn_player_id: null,
+  results: null,
+  turn_deadline_ms: null,
+};
+
+const noBroadcastSettings: BroadcastSettings | null = null;
+
+describe("DraftOverlay (HUD)", () => {
   it("muestra la pantalla de espera cuando no hay match_id", () => {
-    render(<DraftOverlay matchState={{ match_id: null }} roster={roster} />);
+    render(
+      <DraftOverlay
+        matchState={{ match_id: null }}
+        roster={roster}
+        broadcastSettings={null}
+      />,
+    );
     expect(screen.getByText("Esperando partida...")).toBeInTheDocument();
   });
 
-  it("en SETUP muestra los jugadores y la grilla completa sin baneos", () => {
-    const state: MatchState = {
-      match_id: 3,
-      status: "SETUP",
-      player_a: playerA,
-      player_b: playerB,
-      banned_character_ids: [],
-      current_turn_player_id: null,
-      results: null,
-    };
-    render(<DraftOverlay matchState={state} roster={roster} />);
-    expect(screen.getByText(/Sirxtias vs Drachen/)).toBeInTheDocument();
-    for (const character of roster) {
-      const card = screen.getByTestId(`character-${character.id}`);
-      expect(card).not.toHaveClass("banned");
-    }
+  it("en SETUP dibuja bans_per_player slots vacios por jugador", () => {
+    render(
+      <DraftOverlay
+        matchState={baseState}
+        roster={roster}
+        broadcastSettings={noBroadcastSettings}
+      />,
+    );
+    const emptySlots = document.querySelectorAll(".ban-slot.empty");
+    expect(emptySlots).toHaveLength(4); // 2 por jugador
+    expect(screen.getByText("Sirxtias")).toBeInTheDocument();
+    expect(screen.getByText("Drachen")).toBeInTheDocument();
   });
 
-  it("en BANNING muestra de quien es el turno y marca los baneados", () => {
+  it("un baneo real llena el slot con el retrato y el tajo", () => {
     const state: MatchState = {
-      match_id: 3,
+      ...baseState,
       status: "BANNING",
-      player_a: playerA,
-      player_b: playerB,
-      banned_character_ids: ["ryu"],
+      bans: [
+        {
+          character_id: "ryu",
+          banned_by_player_id: playerA.id,
+          was_timeout: false,
+        },
+      ],
       current_turn_player_id: playerB.id,
-      results: null,
     };
-    render(<DraftOverlay matchState={state} roster={roster} />);
-    expect(screen.getByText("Turno de banear: Drachen")).toBeInTheDocument();
-    expect(screen.getByTestId("character-ryu")).toHaveClass("banned");
-    expect(screen.getByTestId("character-luke")).not.toHaveClass("banned");
-  });
-
-  it("el tajo diagonal solo aparece en los personajes baneados", () => {
-    const state: MatchState = {
-      match_id: 3,
-      status: "BANNING",
-      player_a: playerA,
-      player_b: playerB,
-      banned_character_ids: ["ryu"],
-      current_turn_player_id: playerB.id,
-      results: null,
-    };
-    render(<DraftOverlay matchState={state} roster={roster} />);
+    render(
+      <DraftOverlay
+        matchState={state}
+        roster={roster}
+        broadcastSettings={noBroadcastSettings}
+      />,
+    );
+    expect(screen.getByTestId("ban-slot-ryu")).toBeInTheDocument();
     expect(
-      screen.getByTestId("character-ryu").querySelector(".ban-slash"),
+      screen.getByTestId("ban-slot-ryu").querySelector(".ban-slash"),
     ).toBeInTheDocument();
-    expect(
-      screen.getByTestId("character-luke").querySelector(".ban-slash"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("timeout-icon")).not.toBeInTheDocument();
   });
 
-  it("en RANDOMIZING muestra el mensaje de randomizando", () => {
+  it("un turno saltado por timeout muestra el marcador de skip y el icono de timeout, sin retrato", () => {
     const state: MatchState = {
-      match_id: 3,
-      status: "RANDOMIZING",
-      player_a: playerA,
-      player_b: playerB,
-      banned_character_ids: ["ryu", "luke"],
-      current_turn_player_id: null,
-      results: null,
+      ...baseState,
+      status: "BANNING",
+      bans: [
+        {
+          character_id: null,
+          banned_by_player_id: playerA.id,
+          was_timeout: true,
+        },
+      ],
+      current_turn_player_id: playerB.id,
     };
-    render(<DraftOverlay matchState={state} roster={roster} />);
-    expect(screen.getByText("Randomizando...")).toBeInTheDocument();
+    render(
+      <DraftOverlay
+        matchState={state}
+        roster={roster}
+        broadcastSettings={noBroadcastSettings}
+      />,
+    );
+    expect(screen.getByTestId("skipped-marker")).toBeInTheDocument();
+    expect(screen.getByTestId("timeout-icon")).toBeInTheDocument();
   });
 
-  it("en REVEAL muestra el resultado de cada jugador con su retrato", () => {
+  it("un auto-baneo por timeout muestra el retrato Y el icono de timeout", () => {
     const state: MatchState = {
-      match_id: 3,
+      ...baseState,
+      status: "BANNING",
+      bans: [
+        {
+          character_id: "luke",
+          banned_by_player_id: playerA.id,
+          was_timeout: true,
+        },
+      ],
+      current_turn_player_id: playerB.id,
+    };
+    render(
+      <DraftOverlay
+        matchState={state}
+        roster={roster}
+        broadcastSettings={noBroadcastSettings}
+      />,
+    );
+    expect(screen.getByTestId("ban-slot-luke")).toBeInTheDocument();
+    expect(screen.getByTestId("timeout-icon")).toBeInTheDocument();
+  });
+
+  it("solo el slot que le toca al jugador activo tiene la clase active", () => {
+    const state: MatchState = {
+      ...baseState,
+      status: "BANNING",
+      bans: [
+        {
+          character_id: "ryu",
+          banned_by_player_id: playerA.id,
+          was_timeout: false,
+        },
+      ],
+      current_turn_player_id: playerB.id,
+    };
+    render(
+      <DraftOverlay
+        matchState={state}
+        roster={roster}
+        broadcastSettings={noBroadcastSettings}
+      />,
+    );
+    const activeSlots = document.querySelectorAll(".ban-slot.active");
+    expect(activeSlots).toHaveLength(1);
+  });
+
+  describe("countdown", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-08-31T12:00:00Z"));
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("muestra la cuenta regresiva del slot activo y baja con el tiempo", () => {
+      const deadline = Date.now() + 10_000; // 10s en el futuro
+      const state: MatchState = {
+        ...baseState,
+        status: "BANNING",
+        current_turn_player_id: playerA.id,
+        turn_deadline_ms: deadline,
+      };
+      render(
+        <DraftOverlay
+          matchState={state}
+          roster={roster}
+          broadcastSettings={noBroadcastSettings}
+        />,
+      );
+      expect(screen.getByTestId("countdown")).toHaveTextContent("10");
+
+      act(() => {
+        vi.advanceTimersByTime(4000);
+      });
+      expect(screen.getByTestId("countdown")).toHaveTextContent("6");
+    });
+  });
+
+  it("en REVEAL muestra el resultado de cada jugador en su lado, sin la fila de slots", () => {
+    const state: MatchState = {
+      ...baseState,
       status: "REVEAL",
-      player_a: playerA,
-      player_b: playerB,
-      banned_character_ids: ["luke"],
+      bans: [
+        {
+          character_id: "ryu",
+          banned_by_player_id: playerA.id,
+          was_timeout: false,
+        },
+        {
+          character_id: "luke",
+          banned_by_player_id: playerB.id,
+          was_timeout: false,
+        },
+      ],
       current_turn_player_id: null,
       results: { "1": "ryu", "2": "chun_li" },
     };
-    render(<DraftOverlay matchState={state} roster={roster} />);
+    render(
+      <DraftOverlay
+        matchState={state}
+        roster={roster}
+        broadcastSettings={noBroadcastSettings}
+      />,
+    );
 
-    const resultA = screen.getByTestId("result-player-a");
-    expect(resultA).toHaveTextContent("Sirxtias");
-    expect(resultA.querySelector("img")).toHaveAttribute(
+    const resultLeft = screen.getByTestId("result-left");
+    expect(resultLeft).toHaveTextContent("Sirxtias");
+    expect(resultLeft.querySelector("img")).toHaveAttribute(
       "src",
       "/portraits/ryu.webp",
     );
 
-    const resultB = screen.getByTestId("result-player-b");
-    expect(resultB).toHaveTextContent("Drachen");
-    expect(resultB.querySelector("img")).toHaveAttribute(
+    const resultRight = screen.getByTestId("result-right");
+    expect(resultRight).toHaveTextContent("Drachen");
+    expect(resultRight.querySelector("img")).toHaveAttribute(
       "src",
       "/portraits/chun_li.webp",
     );
 
-    // En REVEAL no se muestra la grilla, solo el resultado
-    expect(screen.queryByTestId("character-ryu")).not.toBeInTheDocument();
+    expect(document.querySelectorAll(".ban-slot")).toHaveLength(0);
   });
 
-  it("en DONE sigue mostrando los mismos resultados que REVEAL", () => {
-    const state: MatchState = {
-      match_id: 3,
-      status: "DONE",
-      player_a: playerA,
-      player_b: playerB,
-      banned_character_ids: ["luke"],
-      current_turn_player_id: null,
-      results: { "1": "ryu", "2": "chun_li" },
-    };
-    render(<DraftOverlay matchState={state} roster={roster} />);
-    expect(screen.getByTestId("result-player-a")).toHaveTextContent("Sirxtias");
+  describe("panel central", () => {
+    it("usa el tournament_label de broadcast settings si esta configurado", () => {
+      const settings: BroadcastSettings = {
+        tournament_label: "Randomizer TDF 2026",
+        logo_choice: "torneo",
+        logo_url: "/branding/torneo-logo.webp",
+      };
+      render(
+        <DraftOverlay
+          matchState={baseState}
+          roster={roster}
+          broadcastSettings={settings}
+        />,
+      );
+      expect(screen.getByText("Randomizer TDF 2026")).toBeInTheDocument();
+      expect(screen.queryByText("Torneo de prueba")).not.toBeInTheDocument();
+    });
+
+    it("cae al nombre real del torneo si no hay tournament_label configurado", () => {
+      const settings: BroadcastSettings = {
+        tournament_label: null,
+        logo_choice: "tdf",
+        logo_url: null,
+      };
+      render(
+        <DraftOverlay
+          matchState={baseState}
+          roster={roster}
+          broadcastSettings={settings}
+        />,
+      );
+      expect(screen.getByText("Torneo de prueba")).toBeInTheDocument();
+    });
+
+    it("muestra el estado del draft en el panel central", () => {
+      const state: MatchState = { ...baseState, status: "RANDOMIZING" };
+      render(
+        <DraftOverlay
+          matchState={state}
+          roster={roster}
+          broadcastSettings={noBroadcastSettings}
+        />,
+      );
+      expect(screen.getByText("Randomizando...")).toBeInTheDocument();
+    });
   });
 });

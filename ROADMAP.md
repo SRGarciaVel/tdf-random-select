@@ -211,13 +211,30 @@ diseño acordado.
       `QMessageBox.information()` bloqueante en el camino feliz de
       "Guardar" colgaba cualquier test offscreen sin error legible (ver
       `tasks/lessons.md`); se reemplazó por una `QLabel` de estado.
-- [ ] **Checkpoint HUD-3**: overlay rediseñado - franja inferior,
-      nombres en los extremos, slots de baneo ordenados centro→afuera
-      por jugador (el primer baneo de cada jugador ocupa el slot más
-      cercano al centro), panel central con lo definido en HUD-2, aro/
-      degradado pulsante + cuenta regresiva visual en el slot activo.
-- [ ] **Checkpoint HUD-4**: reveal final movido a los extremos (lado de
-      cada jugador), reemplazando el panel centrado de la Fase 3.
+- [x] **Checkpoint HUD-3: rediseño visual completo del overlay.**
+      `DraftOverlay.tsx` reescrito de cero como franja HUD inferior:
+      nombre de cada jugador en su extremo, slots de baneo entre el
+      nombre y el centro (el primer baneo de cada jugador ocupa el slot
+      más cercano al centro, el resto se abre hacia afuera — implementado
+      invirtiendo el orden de índices del lado izquierdo). Slot activo
+      con degradado pulsante + cuenta regresiva real derivada de
+      `turn_deadline_ms` (cliente, sin necesitar un tick de socket por
+      segundo). Ícono de timeout (⏱) sobre cualquier baneo con
+      `was_timeout=true`, marcador de "—" para turnos saltados
+      (`character_id=null`). Panel central usa `BroadcastSettings`
+      (logo + `tournament_label`, con fallback al nombre real del
+      torneo si no está configurado) y el texto de estado del draft.
+      Al llegar a `REVEAL`/`DONE`, el reveal final reemplaza la fila de
+      slots de cada lado y aparece **en el extremo de cada jugador**
+      (no al centro, corregido respecto a la Fase 3 original). Backend:
+      `build_match_state_payload()` ahora incluye `tournament_name` y
+      `bans_per_player`. 11 tests de Vitest cubriendo slots vacíos/
+      llenos, skip, timeout, cuenta regresiva con timers falsos, reveal
+      por lado, y el panel central con/sin `tournament_label`. Probado
+      además contra el backend real: `index.html` + JS del build nuevo +
+      `/api/roster` + `/api/broadcast-settings` servidos juntos.
+      **Pendiente de confirmar visualmente en la máquina de Seba** (el
+      sandbox no tiene navegador real).
 
 ## Fase 4 — Automatización completa de OBS
 
