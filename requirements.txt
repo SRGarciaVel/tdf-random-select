@@ -7,3 +7,4 @@ simple-websocket==1.0.0
 obsws-python==1.8.0
 python-dotenv==1.0.1
 SQLAlchemy==2.0.35
+requests==2.32.3

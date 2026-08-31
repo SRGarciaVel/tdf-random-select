@@ -41,7 +41,7 @@ class MainWindow(QMainWindow):
 
     def _ensure_socket_connected(self) -> None:
         if not self._sio.connected:
-            self._sio.connect(BACKEND_URL)
+            self._sio.connect(BACKEND_URL, wait_timeout=10)
 
     def _on_ping_clicked(self) -> None:
         try:
