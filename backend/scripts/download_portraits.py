@@ -44,7 +44,7 @@ SITE_SLUG_OVERRIDES: dict[str, str] = {
 }
 
 OUTPUT_DIR = (
-    Path(__file__).resolve().parents[3] / "overlay_app" / "public" / "portraits"
+    Path(__file__).resolve().parents[2] / "overlay_app" / "public" / "portraits"
 )
 BASE_URL = "https://www.streetfighter.com/6/assets/images/character"
 PAGE_BASE_URL = "https://www.streetfighter.com/6/es-us/character"
