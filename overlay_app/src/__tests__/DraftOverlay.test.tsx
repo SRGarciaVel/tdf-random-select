@@ -213,19 +213,24 @@ describe("DraftOverlay (HUD)", () => {
       />,
     );
 
+    const sideLeft = document.querySelector(".player-side-left");
+    expect(sideLeft).toHaveTextContent("Sirxtias");
     const resultLeft = screen.getByTestId("result-left");
-    expect(resultLeft).toHaveTextContent("Sirxtias");
     expect(resultLeft.querySelector("img")).toHaveAttribute(
       "src",
       "/portraits/ryu.webp",
     );
+    // el nombre no se repite adentro de la card de resultado
+    expect(resultLeft).not.toHaveTextContent("Sirxtias");
 
+    const sideRight = document.querySelector(".player-side-right");
+    expect(sideRight).toHaveTextContent("Drachen");
     const resultRight = screen.getByTestId("result-right");
-    expect(resultRight).toHaveTextContent("Drachen");
     expect(resultRight.querySelector("img")).toHaveAttribute(
       "src",
       "/portraits/chun_li.webp",
     );
+    expect(resultRight).not.toHaveTextContent("Drachen");
 
     expect(document.querySelectorAll(".ban-slot")).toHaveLength(0);
   });
@@ -274,6 +279,66 @@ describe("DraftOverlay (HUD)", () => {
         />,
       );
       expect(screen.getByText("Randomizando...")).toBeInTheDocument();
+    });
+  });
+
+  describe("preview de candidato (checkpoint HUD-4)", () => {
+    it("muestra el preview grande solo del lado del jugador que esta seleccionando", () => {
+      const state: MatchState = {
+        ...baseState,
+        status: "BANNING",
+        current_turn_player_id: playerA.id,
+      };
+      render(
+        <DraftOverlay
+          matchState={state}
+          roster={roster}
+          broadcastSettings={noBroadcastSettings}
+          candidatePreview={{ character_id: "ryu", player_id: playerA.id }}
+        />,
+      );
+      expect(screen.getByTestId("candidate-preview-left")).toBeInTheDocument();
+      expect(
+        screen.queryByTestId("candidate-preview-right"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("no muestra preview si candidatePreview.character_id es null", () => {
+      const state: MatchState = { ...baseState, status: "BANNING" };
+      render(
+        <DraftOverlay
+          matchState={state}
+          roster={roster}
+          broadcastSettings={noBroadcastSettings}
+          candidatePreview={{ character_id: null, player_id: playerA.id }}
+        />,
+      );
+      expect(
+        screen.queryByTestId("candidate-preview-left"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("candidate-preview-right"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("no muestra preview durante el reveal, aunque llegue un candidatePreview viejo", () => {
+      const state: MatchState = {
+        ...baseState,
+        status: "REVEAL",
+        results: { "1": "ryu", "2": "luke" },
+      };
+      render(
+        <DraftOverlay
+          matchState={state}
+          roster={roster}
+          broadcastSettings={noBroadcastSettings}
+          candidatePreview={{ character_id: "chun_li", player_id: playerA.id }}
+        />,
+      );
+      expect(
+        screen.queryByTestId("candidate-preview-left"),
+      ).not.toBeInTheDocument();
+      expect(screen.getByTestId("result-left")).toBeInTheDocument();
     });
   });
 });

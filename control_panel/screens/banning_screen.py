@@ -57,6 +57,10 @@ class BanningScreen(QWidget):
         self._ban_timer.timeout.connect(self._on_ban_timeout)
         self._current_turn_key: tuple[int, int] | None = None  # (match_id, player_id)
         self._turn_deadline: dt.datetime | None = None
+        # Personaje elegido pero todavia sin confirmar (checkpoint HUD-4:
+        # clic selecciona, "Bloquear" confirma - evita baneos accidentales
+        # y le da tiempo al overlay a mostrar el preview grande).
+        self._selected_character_id: str | None = None
 
         self._match_selector = QComboBox()
         self._match_selector.currentIndexChanged.connect(self._on_match_selected)
@@ -81,11 +85,15 @@ class BanningScreen(QWidget):
         for index, entry in enumerate(SF6_ROSTER):
             button = QPushButton(entry["display_name"])
             button.clicked.connect(
-                lambda _checked, cid=entry["id"]: self._on_character_clicked(cid)
+                lambda _checked, cid=entry["id"]: self._on_character_selected(cid)
             )
             self._character_buttons[entry["id"]] = button
             grid.addWidget(button, index // GRID_COLUMNS, index % GRID_COLUMNS)
         grid_box.setLayout(grid)
+
+        self._lock_in_button = QPushButton("Bloquear")
+        self._lock_in_button.setEnabled(False)
+        self._lock_in_button.clicked.connect(self._on_lock_in_clicked)
 
         self._randomize_button = QPushButton("Randomizar")
         self._randomize_button.clicked.connect(self._on_randomize_clicked)
@@ -98,6 +106,7 @@ class BanningScreen(QWidget):
         layout.addLayout(start_row)
         layout.addWidget(self._status_label)
         layout.addWidget(grid_box)
+        layout.addWidget(self._lock_in_button)
         layout.addWidget(self._randomize_button)
         layout.addWidget(self._results_label)
         layout.addWidget(self._complete_button)
@@ -140,6 +149,7 @@ class BanningScreen(QWidget):
             self._randomize_button.setEnabled(False)
             self._complete_button.setEnabled(False)
             self._start_button.setEnabled(False)
+            self._lock_in_button.setEnabled(False)
             self._first_banner_selector.clear()
             self._results_label.setText("")
             return
@@ -198,9 +208,16 @@ class BanningScreen(QWidget):
             )
             button.setText(label)
             button.setEnabled(status == "BANNING" and not is_banned)
-            button.setStyleSheet(
-                "color: gray; text-decoration: line-through;" if is_banned else ""
-            )
+            if is_banned:
+                button.setStyleSheet("color: gray; text-decoration: line-through;")
+            elif character_id == self._selected_character_id:
+                button.setStyleSheet("background-color: #c400ff; color: white;")
+            else:
+                button.setStyleSheet("")
+
+        self._lock_in_button.setEnabled(
+            status == "BANNING" and self._selected_character_id is not None
+        )
 
         status_messages = {
             "SETUP": f"Match #{match.id}: {player_a.display_name} vs {player_b.display_name}. Listo para iniciar el baneo.",
@@ -246,9 +263,20 @@ class BanningScreen(QWidget):
             return
         self._reload_matches()
 
-    def _on_character_clicked(self, character_id: str) -> None:
-        if self._match_id is None:
+    def _on_character_selected(self, character_id: str) -> None:
+        if self._match_id is None or self._current_turn_key is None:
             return
+        self._selected_character_id = character_id
+        _, current_turn_player_id = self._current_turn_key
+        self._overlay_bridge.emit_ban_candidate_preview(
+            character_id, current_turn_player_id
+        )
+        self._refresh_state()
+
+    def _on_lock_in_clicked(self) -> None:
+        if self._match_id is None or self._selected_character_id is None:
+            return
+        character_id = self._selected_character_id
         try:
             with self._session_factory() as session:
                 match = session.get(Match, self._match_id)
@@ -258,6 +286,7 @@ class BanningScreen(QWidget):
         except DraftError as exc:
             QMessageBox.warning(self, "Baneo inválido", str(exc))
             return
+        self._selected_character_id = None
         self._reload_matches()
 
     def _on_randomize_clicked(self) -> None:
@@ -303,6 +332,12 @@ class BanningScreen(QWidget):
             milliseconds=self._timer_ms
         )
         self._ban_timer.start(self._timer_ms)
+        self._clear_selection()
+
+    def _clear_selection(self) -> None:
+        if self._selected_character_id is not None:
+            self._selected_character_id = None
+            self._overlay_bridge.emit_ban_candidate_preview(None, None)
 
     def _stop_ban_timer(self) -> None:
         self._ban_timer.stop()

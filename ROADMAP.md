@@ -233,8 +233,34 @@ diseño acordado.
       por lado, y el panel central con/sin `tournament_label`. Probado
       además contra el backend real: `index.html` + JS del build nuevo +
       `/api/roster` + `/api/broadcast-settings` servidos juntos.
-      **Pendiente de confirmar visualmente en la máquina de Seba** (el
-      sandbox no tiene navegador real).
+      **Confirmado visualmente en la máquina de Seba** — encontró y se
+      corrigieron 2 bugs reales que el sandbox no podía detectar sin
+      navegador: (1) el nombre del jugador se mostraba duplicado (una
+      vez como etiqueta afuera, otra vez adentro de `ResultCard`) —
+      se sacó del `ResultCard`, el nombre vive una sola vez en
+      `player-name-label`; (2) la franja no estaba anclada al fondo del
+      viewport (`position: fixed` faltante), todo quedaba apretado
+      arriba a la izquierda. Se reemplazó el layout flex por el patrón
+      real de **tres cajas ancladas via `calc(50% ± offset)`**, adaptado
+      de [RCVolus/lol-pick-ban-ui](https://github.com/RCVolus/lol-pick-ban-ui)
+      (MIT License, usado en transmisiones reales de LoL) — mucho más
+      robusto que un flex row que depende del ancho del contenedor.
+- [x] **Checkpoint HUD-4: selección + "Bloquear" con preview grande y
+      transición de elemento compartido.** El clic en un personaje del
+      panel ya no banea directo — **selecciona** (resalta en magenta,
+      emite `ban_candidate_preview` vía Socket.IO) y el nuevo botón
+      **"Bloquear"** confirma el baneo real. Evita baneos accidentales,
+      mismo patrón que el pick/ban de League of Legends. El overlay
+      muestra el retrato grande del candidato al lado del jugador que
+      está eligiendo, y usa el mismo `layoutId` de Framer Motion entre
+      el preview grande y el slot chico — al confirmarse, el retrato
+      "vuela" automáticamente de uno a otro (FLIP shared-element
+      transition), donde se pone gris con el tajo ya existente.
+      Selección efímera, nunca toca la base — se limpia sola cuando el
+      turno cambia (timeout o baneo resuelto) o cuando llega cualquier
+      `match_state_update` real. 3 tests de Vitest + 1 test end-to-end
+      con backend y Socket.IO reales confirmando que seleccionar NO
+      banea y que "Bloquear" sí lo hace.
 
 ## Fase 4 — Automatización completa de OBS
 

@@ -11,6 +11,10 @@ overlay_app/build/
 # se regeneran, no tiene sentido versionar binarios pesados en git.
 overlay_app/public/portraits/
 
+# Logos subidos desde la pantalla de Transmisión (BroadcastSettingsScreen) -
+# mismo criterio que los retratos, son binarios subidos por el staff.
+overlay_app/public/branding/
+
 # PyInstaller
 build/
 dist/

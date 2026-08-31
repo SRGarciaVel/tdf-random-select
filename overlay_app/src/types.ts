@@ -37,3 +37,10 @@ export interface BroadcastSettings {
   logo_choice: "tdf" | "torneo";
   logo_url: string | null;
 }
+
+// Espejo del evento Socket.IO "ban_candidate_preview" (checkpoint HUD-4).
+// null significa que no hay nada seleccionado ahora mismo en el panel.
+export interface CandidatePreview {
+  character_id: string | null;
+  player_id: number | null;
+}

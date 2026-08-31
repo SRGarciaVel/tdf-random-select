@@ -31,3 +31,20 @@ class OverlayBridge:
             # esta arriba, el panel debe seguir funcionando igual (mismo
             # criterio de modo degradado que ObsService, ver CODESTYLE.md).
             logger.warning("No se pudo empujar el estado al overlay.", exc_info=True)
+
+    def emit_ban_candidate_preview(
+        self, character_id: str | None, player_id: int | None
+    ) -> None:
+        """Avisa al overlay que personaje tiene seleccionado (sin
+        confirmar) el staff en el panel - checkpoint HUD-4. Mismo modo
+        degradado que emit_match_state si el backend no esta arriba.
+        """
+        try:
+            if not self._sio.connected:
+                self._sio.connect(BACKEND_URL, wait_timeout=10)
+            self._sio.emit(
+                "ban_candidate_preview",
+                {"character_id": character_id, "player_id": player_id},
+            )
+        except Exception:
+            logger.warning("No se pudo empujar el preview al overlay.", exc_info=True)

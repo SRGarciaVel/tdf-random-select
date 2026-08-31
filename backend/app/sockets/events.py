@@ -24,3 +24,13 @@ def handle_match_state_update(payload: dict) -> None:
     backend/app/services/draft_service.py).
     """
     emit("match_state_update", payload, broadcast=True)
+
+
+@socketio.on("ban_candidate_preview")
+def handle_ban_candidate_preview(payload: dict) -> None:
+    """Reenvía el personaje que el staff tiene seleccionado (pero no
+    confirmado) en el panel - estado efimero de UI, no toca la base
+    (checkpoint HUD-4: seleccionar + "Bloquear", ver ROADMAP.md).
+    payload: {"character_id": str | None, "player_id": int | None}
+    """
+    emit("ban_candidate_preview", payload, broadcast=True)

@@ -1,8 +1,9 @@
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import type {
   BanRecord,
   BroadcastSettings,
+  CandidatePreview,
   CharacterInfo,
   MatchState,
   PlayerInfo,
@@ -13,6 +14,7 @@ interface DraftOverlayProps {
   matchState: MatchState;
   roster: CharacterInfo[];
   broadcastSettings: BroadcastSettings | null;
+  candidatePreview?: CandidatePreview | null;
 }
 
 type RosterMap = Record<string, CharacterInfo>;
@@ -101,7 +103,11 @@ function BanSlot({
     >
       {character && (
         <>
-          <img src={portraitUrl(character.id)} alt={character.display_name} />
+          <motion.img
+            layoutId={`char-${character.id}`}
+            src={portraitUrl(character.id)}
+            alt={character.display_name}
+          />
           <BanSlash />
         </>
       )}
@@ -129,12 +135,37 @@ function BanSlot({
   );
 }
 
+function CandidatePreviewCard({
+  character,
+  side,
+}: {
+  character: CharacterInfo;
+  side: "left" | "right";
+}) {
+  return (
+    <motion.div
+      key={character.id}
+      className="candidate-preview"
+      data-testid={`candidate-preview-${side}`}
+      initial={{ opacity: 0, scale: 0.85 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.85 }}
+      transition={{ duration: 0.25 }}
+    >
+      <motion.img
+        layoutId={`char-${character.id}`}
+        src={portraitUrl(character.id)}
+        alt={character.display_name}
+      />
+      <span className="candidate-preview-name">{character.display_name}</span>
+    </motion.div>
+  );
+}
+
 function ResultCard({
-  player,
   characterId,
   side,
 }: {
-  player: PlayerInfo;
   characterId: string;
   side: "left" | "right";
 }) {
@@ -147,7 +178,6 @@ function ResultCard({
       transition={{ type: "spring", stiffness: 260, damping: 20 }}
     >
       <img src={portraitUrl(characterId)} alt={characterId} />
-      <span className="result-player-name">{player.display_name}</span>
     </motion.div>
   );
 }
@@ -162,6 +192,7 @@ function PlayerSide({
   deadlineMs,
   showResult,
   resultCharacterId,
+  candidateCharacter,
 }: {
   side: "left" | "right";
   player: PlayerInfo;
@@ -172,6 +203,7 @@ function PlayerSide({
   deadlineMs: number | null;
   showResult: boolean;
   resultCharacterId: string | null;
+  candidateCharacter: CharacterInfo | null;
 }) {
   const slotIndices = Array.from({ length: bansPerPlayer }, (_, i) => i);
   // El primer baneo de cada jugador ocupa el slot mas cercano al centro
@@ -199,13 +231,20 @@ function PlayerSide({
   );
 
   const resultArea = showResult && resultCharacterId && (
-    <ResultCard player={player} characterId={resultCharacterId} side={side} />
+    <ResultCard characterId={resultCharacterId} side={side} />
   );
 
   return (
     <div className={`player-side player-side-${side}`}>
       {side === "left" && nameLabel}
-      {showResult ? resultArea : slotsRow}
+      <div className="player-side-stack">
+        <AnimatePresence>
+          {!showResult && candidateCharacter && (
+            <CandidatePreviewCard character={candidateCharacter} side={side} />
+          )}
+        </AnimatePresence>
+        {showResult ? resultArea : slotsRow}
+      </div>
       {side === "right" && nameLabel}
     </div>
   );
@@ -245,6 +284,7 @@ export default function DraftOverlay({
   matchState,
   roster,
   broadcastSettings,
+  candidatePreview = null,
 }: DraftOverlayProps) {
   if (matchState.match_id === null) {
     return (
@@ -263,8 +303,20 @@ export default function DraftOverlay({
     matchState.status === "REVEAL" || matchState.status === "DONE";
   const results = matchState.results ?? null;
 
+  const candidateCharacterFor = (
+    playerId: number | undefined,
+  ): CharacterInfo | null => {
+    if (
+      !candidatePreview?.character_id ||
+      candidatePreview.player_id !== playerId
+    ) {
+      return null;
+    }
+    return rosterMap[candidatePreview.character_id] ?? null;
+  };
+
   return (
-    <div className="hud-bar">
+    <div className="hud-root">
       {matchState.player_a && (
         <PlayerSide
           side="left"
@@ -281,6 +333,7 @@ export default function DraftOverlay({
           deadlineMs={matchState.turn_deadline_ms ?? null}
           showResult={showResults}
           resultCharacterId={results?.[String(matchState.player_a.id)] ?? null}
+          candidateCharacter={candidateCharacterFor(matchState.player_a.id)}
         />
       )}
 
@@ -305,6 +358,7 @@ export default function DraftOverlay({
           deadlineMs={matchState.turn_deadline_ms ?? null}
           showResult={showResults}
           resultCharacterId={results?.[String(matchState.player_b.id)] ?? null}
+          candidateCharacter={candidateCharacterFor(matchState.player_b.id)}
         />
       )}
     </div>
