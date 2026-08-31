@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import QApplication
 from qasync import QEventLoop
 
 from backend.app import create_app, socketio
+from backend.app.models import get_engine, get_session_factory, init_db
 from control_panel.main_window import MainWindow
 
 BACKEND_HOST = "localhost"
@@ -31,6 +32,10 @@ def _run_backend() -> None:
 
 
 def main() -> int:
+    engine = get_engine()
+    init_db(engine)  # idempotente - solo crea tablas que no existen
+    session_factory = get_session_factory(engine)
+
     backend_thread = threading.Thread(target=_run_backend, daemon=True)
     backend_thread.start()
 
@@ -38,7 +43,7 @@ def main() -> int:
     loop = QEventLoop(app)
     asyncio.set_event_loop(loop)
 
-    window = MainWindow()
+    window = MainWindow(session_factory)
     window.show()
 
     with loop:

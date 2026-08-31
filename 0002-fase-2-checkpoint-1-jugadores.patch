@@ -1,0 +1,462 @@
+From b2daefdb57ae2d5b2bf01e58d2598c6e794f89e5 Mon Sep 17 00:00:00 2001
+From: "Sebastian (TDF e-deportes)" <seba@tdf-edeportes.local>
+Date: Mon, 31 Aug 2026 16:36:15 +0000
+Subject: [PATCH] feat: Fase 2 checkpoint 1 - shell de navegacion con pestanas
+ y pantalla de gestion de jugadores
+
+---
+ ROADMAP.md                                  | 32 +++++--
+ backend/app/services/player_service.py      | 28 ++++++
+ backend/tests/test_player_service.py        | 39 +++++++++
+ control_panel/__init__.py                   |  0
+ control_panel/main_window.py                | 77 ++++------------
+ control_panel/screens/__init__.py           |  0
+ control_panel/screens/diagnostics_screen.py | 71 +++++++++++++++
+ control_panel/screens/players_screen.py     | 97 +++++++++++++++++++++
+ main.py                                     |  7 +-
+ 9 files changed, 281 insertions(+), 70 deletions(-)
+ create mode 100644 backend/app/services/player_service.py
+ create mode 100644 backend/tests/test_player_service.py
+ create mode 100644 control_panel/__init__.py
+ create mode 100644 control_panel/screens/__init__.py
+ create mode 100644 control_panel/screens/diagnostics_screen.py
+ create mode 100644 control_panel/screens/players_screen.py
+
+diff --git a/ROADMAP.md b/ROADMAP.md
+index 2dcc722..95f5b8b 100644
+--- a/ROADMAP.md
++++ b/ROADMAP.md
+@@ -76,16 +76,32 @@ panel y el overlay todavía sean mínimos).
+ 
+ ## Fase 2 — Panel de control real (PyQt6)
+ 
+-- [ ] Pantalla de setup: elegir jugadores, cantidad de baneos, cargar
+-      `character_tags` por jugador.
+-- [ ] Pantalla de baneo en vivo: grilla de personajes, resalta el
+-      personaje si está en `character_tags` del rival, indica de quién
+-      es el turno.
+-- [ ] Pantalla de configuración de OBS (host, puerto, password, nombre
+-      de la escena de draft) persistida en `obs_settings`.
++- [x] Shell de navegación (`QTabWidget`) reemplazando la ventana única
++      del walking skeleton. `MainWindow` recibe `session_factory` por
++      constructor (engine/schema se crean una sola vez en `main.py`) y
++      se lo pasa a cada pestaña — nada de estado global.
++- [x] Pantalla "Jugadores": alta/listado/baja contra SQLite real
++      (`backend/app/services/player_service.py`, con tests). Base para
++      elegir Jugador A/B en el setup del match.
++- [x] Pantalla "Diagnóstico": el Ping + Test OBS del walking skeleton,
++      migrado a su propia pestaña — se mantiene porque sigue sirviendo
++      para diagnosticar conexión sin armar un match real.
++- [ ] Pantalla de setup del match: elegir tournament (o crear uno rápido
++      con nombre + `bans_per_player`), elegir Jugador A/B desde la lista
++      de jugadores existentes, cargar `character_tags` por jugador.
++- [ ] Pantalla de baneo en vivo: grilla de personajes (roster de
++      `sf6_roster.py`), resalta si el personaje está en `character_tags`
++      del rival, indica de quién es el turno (`DraftService.current_turn_player_id`),
++      dispara `ban_character` al hacer clic, avanza sola a
++      `RANDOMIZING`/`REVEAL` cuando corresponde.
++- [ ] Pantalla de configuración de OBS: reemplaza las env vars
++      `OBS_HOST`/`OBS_PORT`/`OBS_PASSWORD` del walking skeleton por la
++      tabla `obs_settings` real (host, puerto, password, nombre de la
++      escena de draft).
+ - [ ] Botones "Iniciar Baneo" y override manual de "Volver a escena
+       anterior", disparando `obs_service` en paralelo al evento de
+-      Socket.IO.
++      Socket.IO (esto último recién tiene sentido una vez que la
++      pantalla de baneo emite esos eventos, ver Fase 3/4).
+ 
+ ## Fase 3 — Overlay real (React + Framer Motion)
+ 
+diff --git a/backend/app/services/player_service.py b/backend/app/services/player_service.py
+new file mode 100644
+index 0000000..80dd569
+--- /dev/null
++++ b/backend/app/services/player_service.py
+@@ -0,0 +1,28 @@
++from __future__ import annotations
++
++from sqlalchemy.orm import Session
++
++from backend.app.models import Player
++
++
++def add_player(
++    session: Session, display_name: str, cfn_id: str | None = None
++) -> Player:
++    display_name = display_name.strip()
++    if not display_name:
++        raise ValueError("display_name no puede estar vacio.")
++    player = Player(display_name=display_name, cfn_id=(cfn_id or "").strip() or None)
++    session.add(player)
++    session.commit()
++    return player
++
++
++def list_players(session: Session) -> list[Player]:
++    return list(session.query(Player).order_by(Player.display_name).all())
++
++
++def delete_player(session: Session, player_id: int) -> None:
++    player = session.get(Player, player_id)
++    if player is not None:
++        session.delete(player)
++        session.commit()
+diff --git a/backend/tests/test_player_service.py b/backend/tests/test_player_service.py
+new file mode 100644
+index 0000000..c206707
+--- /dev/null
++++ b/backend/tests/test_player_service.py
+@@ -0,0 +1,39 @@
++from __future__ import annotations
++
++import pytest
++from sqlalchemy.orm import Session
++
++from backend.app.services.player_service import add_player, delete_player, list_players
++
++
++def test_add_and_list_players(session: Session) -> None:
++    add_player(session, "  Sirxtias  ", cfn_id=" 2844671427 ")
++    add_player(session, "Drachen")
++
++    players = list_players(session)
++    assert [p.display_name for p in players] == [
++        "Drachen",
++        "Sirxtias",
++    ]  # orden alfabetico
++    sirxtias = next(p for p in players if p.display_name == "Sirxtias")
++    assert sirxtias.cfn_id == "2844671427"  # se limpio el espacio
++
++
++def test_add_player_with_empty_name_is_rejected(session: Session) -> None:
++    with pytest.raises(ValueError):
++        add_player(session, "   ")
++
++
++def test_add_player_without_cfn_id_stores_none(session: Session) -> None:
++    player = add_player(session, "Jugador sin CFN")
++    assert player.cfn_id is None
++
++
++def test_delete_player(session: Session) -> None:
++    player = add_player(session, "A borrar")
++    delete_player(session, player.id)
++    assert list_players(session) == []
++
++
++def test_delete_nonexistent_player_does_not_raise(session: Session) -> None:
++    delete_player(session, 9999)  # no debe reventar
+diff --git a/control_panel/__init__.py b/control_panel/__init__.py
+new file mode 100644
+index 0000000..e69de29
+diff --git a/control_panel/main_window.py b/control_panel/main_window.py
+index cbf2c15..3d18aa8 100644
+--- a/control_panel/main_window.py
++++ b/control_panel/main_window.py
+@@ -1,72 +1,27 @@
+ from __future__ import annotations
+ 
+-import os
++from PyQt6.QtWidgets import QMainWindow, QTabWidget
++from sqlalchemy.orm import sessionmaker
+ 
+-import socketio as socketio_client
+-from PyQt6.QtWidgets import QLabel, QMainWindow, QMessageBox, QPushButton, QVBoxLayout, QWidget
+-
+-from backend.app.services.obs_service import ObsConnectionError, ObsService
+-
+-BACKEND_URL = "http://localhost:5001"
++from control_panel.screens.diagnostics_screen import DiagnosticsScreen
++from control_panel.screens.players_screen import PlayersScreen
+ 
+ 
+ class MainWindow(QMainWindow):
+-    """Ventana mínima del walking skeleton (SPECS.md §7).
++    """Shell de navegacion del panel de control (Fase 2, ver ROADMAP.md).
+ 
+-    Se reemplaza por las pantallas reales de setup/baneo/config de OBS
+-    en la Fase 2 del ROADMAP.md.
++    Cada pestana es una pantalla independiente (control_panel/screens/),
++    reciben lo que necesitan (session_factory, etc.) por constructor en
++    vez de ir a buscarlo global - mismo criterio que los servicios del
++    backend (CODESTYLE.md).
+     """
+ 
+-    def __init__(self) -> None:
++    def __init__(self, session_factory: sessionmaker) -> None:
+         super().__init__()
+-        self.setWindowTitle("TDF Random Select — walking skeleton")
+-        self.resize(420, 220)
+-
+-        self._sio = socketio_client.Client()
+-        # Configurable por env var mientras no existe la pantalla de
+-        # configuracion de OBS (Fase 2, ver ROADMAP.md). Necesario para
+-        # probar desde WSL2 en modo NAT, donde "localhost" no apunta al
+-        # Windows host real (ver tasks/lessons.md).
+-        obs_host = os.environ.get("OBS_HOST", "localhost")
+-        obs_port = int(os.environ.get("OBS_PORT", "4455"))
+-        obs_password = os.environ.get("OBS_PASSWORD", "")
+-        self._obs = ObsService(host=obs_host, port=obs_port, password=obs_password)
+-
+-        self._status_label = QLabel("Sin conexión al backend todavía.")
+-        ping_button = QPushButton("Ping")
+-        ping_button.clicked.connect(self._on_ping_clicked)
+-
+-        obs_button = QPushButton("Test OBS")
+-        obs_button.clicked.connect(self._on_test_obs_clicked)
+-
+-        layout = QVBoxLayout()
+-        layout.addWidget(self._status_label)
+-        layout.addWidget(ping_button)
+-        layout.addWidget(obs_button)
+-
+-        container = QWidget()
+-        container.setLayout(layout)
+-        self.setCentralWidget(container)
+-
+-    def _ensure_socket_connected(self) -> None:
+-        if not self._sio.connected:
+-            # wait_timeout default de la libreria es 1s - insuficiente cuando
+-            # el proceso esta bajo carga de renderizado por software (ver
+-            # tasks/lessons.md, caso WSLg sin GPU passthrough).
+-            self._sio.connect(BACKEND_URL, wait_timeout=10)
+-
+-    def _on_ping_clicked(self) -> None:
+-        try:
+-            self._ensure_socket_connected()
+-            self._sio.emit("ping_from_control_panel", {"message": "ping desde el panel"})
+-            self._status_label.setText("Ping enviado al backend.")
+-        except Exception as exc:
+-            self._status_label.setText(f"Error de conexión al backend: {exc}")
++        self.setWindowTitle("TDF Random Select")
++        self.resize(720, 480)
+ 
+-    def _on_test_obs_clicked(self) -> None:
+-        try:
+-            self._obs.connect()
+-            scenes = self._obs.list_scenes()
+-            QMessageBox.information(self, "Escenas de OBS", "\n".join(scenes) or "Sin escenas.")
+-        except ObsConnectionError as exc:
+-            QMessageBox.warning(self, "No se pudo conectar a OBS", str(exc))
++        tabs = QTabWidget()
++        tabs.addTab(PlayersScreen(session_factory), "Jugadores")
++        tabs.addTab(DiagnosticsScreen(), "Diagnóstico")
++        self.setCentralWidget(tabs)
+diff --git a/control_panel/screens/__init__.py b/control_panel/screens/__init__.py
+new file mode 100644
+index 0000000..e69de29
+diff --git a/control_panel/screens/diagnostics_screen.py b/control_panel/screens/diagnostics_screen.py
+new file mode 100644
+index 0000000..65e8686
+--- /dev/null
++++ b/control_panel/screens/diagnostics_screen.py
+@@ -0,0 +1,71 @@
++from __future__ import annotations
++
++import os
++
++import socketio as socketio_client
++from PyQt6.QtWidgets import QLabel, QMessageBox, QPushButton, QVBoxLayout, QWidget
++
++from backend.app.services.obs_service import ObsConnectionError, ObsService
++
++BACKEND_URL = "http://localhost:5001"
++
++
++class DiagnosticsScreen(QWidget):
++    """Ping al backend + Test OBS, heredado del walking skeleton (SPECS.md
++    §7). Se mantiene como pantalla propia porque sigue siendo util para
++    diagnosticar problemas de conexion sin tener que armar un match real.
++    """
++
++    def __init__(self) -> None:
++        super().__init__()
++
++        self._sio = socketio_client.Client()
++        # Configurable por env var mientras no existe la pantalla de
++        # configuracion de OBS real (obs_settings, ver ROADMAP.md Fase 2).
++        # Necesario para probar desde WSL2 en modo NAT, donde "localhost"
++        # no apunta al Windows host real (ver tasks/lessons.md).
++        obs_host = os.environ.get("OBS_HOST", "localhost")
++        obs_port = int(os.environ.get("OBS_PORT", "4455"))
++        obs_password = os.environ.get("OBS_PASSWORD", "")
++        self._obs = ObsService(host=obs_host, port=obs_port, password=obs_password)
++
++        self._status_label = QLabel("Sin conexión al backend todavía.")
++        ping_button = QPushButton("Ping")
++        ping_button.clicked.connect(self._on_ping_clicked)
++
++        obs_button = QPushButton("Test OBS")
++        obs_button.clicked.connect(self._on_test_obs_clicked)
++
++        layout = QVBoxLayout()
++        layout.addWidget(self._status_label)
++        layout.addWidget(ping_button)
++        layout.addWidget(obs_button)
++        layout.addStretch()
++        self.setLayout(layout)
++
++    def _ensure_socket_connected(self) -> None:
++        if not self._sio.connected:
++            # wait_timeout default de la libreria es 1s - insuficiente cuando
++            # el proceso esta bajo carga de renderizado por software (ver
++            # tasks/lessons.md, caso WSLg sin GPU passthrough).
++            self._sio.connect(BACKEND_URL, wait_timeout=10)
++
++    def _on_ping_clicked(self) -> None:
++        try:
++            self._ensure_socket_connected()
++            self._sio.emit(
++                "ping_from_control_panel", {"message": "ping desde el panel"}
++            )
++            self._status_label.setText("Ping enviado al backend.")
++        except Exception as exc:
++            self._status_label.setText(f"Error de conexión al backend: {exc}")
++
++    def _on_test_obs_clicked(self) -> None:
++        try:
++            self._obs.connect()
++            scenes = self._obs.list_scenes()
++            QMessageBox.information(
++                self, "Escenas de OBS", "\n".join(scenes) or "Sin escenas."
++            )
++        except ObsConnectionError as exc:
++            QMessageBox.warning(self, "No se pudo conectar a OBS", str(exc))
+diff --git a/control_panel/screens/players_screen.py b/control_panel/screens/players_screen.py
+new file mode 100644
+index 0000000..1413f68
+--- /dev/null
++++ b/control_panel/screens/players_screen.py
+@@ -0,0 +1,97 @@
++from __future__ import annotations
++
++from PyQt6.QtWidgets import (
++    QAbstractItemView,
++    QHBoxLayout,
++    QHeaderView,
++    QLabel,
++    QLineEdit,
++    QMessageBox,
++    QPushButton,
++    QTableWidget,
++    QTableWidgetItem,
++    QVBoxLayout,
++    QWidget,
++)
++from sqlalchemy.orm import sessionmaker
++
++from backend.app.services.player_service import add_player, delete_player, list_players
++
++
++class PlayersScreen(QWidget):
++    """CRUD simple de jugadores - base para elegir Jugador A/B en el setup
++    del draft (Fase 2, ver ROADMAP.md)."""
++
++    def __init__(self, session_factory: sessionmaker) -> None:
++        super().__init__()
++        self._session_factory = session_factory
++
++        self._name_input = QLineEdit()
++        self._name_input.setPlaceholderText("Nombre del jugador")
++        self._cfn_input = QLineEdit()
++        self._cfn_input.setPlaceholderText("CFN ID (opcional)")
++        add_button = QPushButton("Agregar jugador")
++        add_button.clicked.connect(self._on_add_clicked)
++
++        form_row = QHBoxLayout()
++        form_row.addWidget(self._name_input)
++        form_row.addWidget(self._cfn_input)
++        form_row.addWidget(add_button)
++
++        self._table = QTableWidget(0, 3)
++        self._table.setHorizontalHeaderLabels(["ID", "Nombre", "CFN ID"])
++        self._table.horizontalHeader().setSectionResizeMode(
++            1, QHeaderView.ResizeMode.Stretch
++        )
++        self._table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
++        self._table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
++
++        delete_button = QPushButton("Eliminar jugador seleccionado")
++        delete_button.clicked.connect(self._on_delete_clicked)
++
++        layout = QVBoxLayout()
++        layout.addWidget(QLabel("Jugadores"))
++        layout.addLayout(form_row)
++        layout.addWidget(self._table)
++        layout.addWidget(delete_button)
++        self.setLayout(layout)
++
++        self.refresh()
++
++    def refresh(self) -> None:
++        with self._session_factory() as session:
++            players = list_players(session)
++
++        self._table.setRowCount(len(players))
++        for row, player in enumerate(players):
++            self._table.setItem(row, 0, QTableWidgetItem(str(player.id)))
++            self._table.setItem(row, 1, QTableWidgetItem(player.display_name))
++            self._table.setItem(row, 2, QTableWidgetItem(player.cfn_id or ""))
++
++    def _on_add_clicked(self) -> None:
++        name = self._name_input.text()
++        cfn_id = self._cfn_input.text()
++        try:
++            with self._session_factory() as session:
++                add_player(session, name, cfn_id)
++        except ValueError as exc:
++            QMessageBox.warning(self, "No se pudo agregar", str(exc))
++            return
++
++        self._name_input.clear()
++        self._cfn_input.clear()
++        self.refresh()
++
++    def _on_delete_clicked(self) -> None:
++        selected_rows = self._table.selectionModel().selectedRows()
++        if not selected_rows:
++            QMessageBox.information(
++                self, "Nada seleccionado", "Selecciona un jugador de la tabla primero."
++            )
++            return
++
++        row = selected_rows[0].row()
++        player_id = int(self._table.item(row, 0).text())
++        with self._session_factory() as session:
++            delete_player(session, player_id)
++        self.refresh()
+diff --git a/main.py b/main.py
+index be391d0..cf33596 100644
+--- a/main.py
++++ b/main.py
+@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import QApplication
+ from qasync import QEventLoop
+ 
+ from backend.app import create_app, socketio
++from backend.app.models import get_engine, get_session_factory, init_db
+ from control_panel.main_window import MainWindow
+ 
+ BACKEND_HOST = "localhost"
+@@ -31,6 +32,10 @@ def _run_backend() -> None:
+ 
+ 
+ def main() -> int:
++    engine = get_engine()
++    init_db(engine)  # idempotente - solo crea tablas que no existen
++    session_factory = get_session_factory(engine)
++
+     backend_thread = threading.Thread(target=_run_backend, daemon=True)
+     backend_thread.start()
+ 
+@@ -38,7 +43,7 @@ def main() -> int:
+     loop = QEventLoop(app)
+     asyncio.set_event_loop(loop)
+ 
+-    window = MainWindow()
++    window = MainWindow(session_factory)
+     window.show()
+ 
+     with loop:
+-- 
+2.43.0
+
