@@ -134,9 +134,22 @@ donde tiene más sentido junto con el resto de la automatización de OBS.
       overlay, confirmando que llegan los 6 estados
       (`SETUP → BANNING → BANNING → RANDOMIZING → REVEAL → DONE`) con
       los datos correctos en cada uno.
-- [ ] Grilla de 31 personajes con retratos oficiales de Capcom en React.
+- [x] **Checkpoint B: grilla real de React.** `/api/roster` en el backend
+      expone el roster (una sola fuente de verdad, el overlay ya no
+      duplica la lista de personajes en TS). `DraftOverlay.tsx` es un
+      componente puro (props: `matchState` + `roster`, sin socket ni
+      fetch adentro) que renderiza la grilla de 31 retratos, marca los
+      baneados (gris + tachado visual), muestra de quién es el turno, y
+      cambia a un panel de resultados en `REVEAL`/`DONE`. `App.tsx` solo
+      hace el fetch inicial y escucha `match_state_update`, delega el
+      render. 6 tests con Vitest + Testing Library cubriendo los mismos
+      6 estados que ya se probaron en Python (idle, SETUP, BANNING,
+      RANDOMIZING, REVEAL, DONE). Probado además de punta a punta contra
+      el backend real: `index.html` + el JS del build + `/api/roster`
+      servidos juntos correctamente por el mismo Flask.
 - [ ] Animación de baneo (personaje tachado/oscurecido en el momento que
-      llega el evento).
+      llega el evento) — hoy el cambio es instantáneo vía CSS, falta la
+      animación real con Framer Motion.
 - [ ] Animación de reveal tipo LoL para el personaje asignado a cada
       jugador.
 - [ ] Verificación de que el overlay se ve bien dentro de un Browser

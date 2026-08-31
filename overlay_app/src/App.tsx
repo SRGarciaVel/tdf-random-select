@@ -1,29 +1,29 @@
-import { useEffect, useState } from 'react'
-import socketConnection from './socketConnection'
-import './App.css'
+import { useEffect, useState } from "react";
+import DraftOverlay from "./DraftOverlay";
+import socketConnection from "./socketConnection";
+import type { CharacterInfo, MatchState } from "./types";
 
-// Overlay minimo del walking skeleton (ver SPECS.md paragrafo 7).
-// Se reemplaza por la grilla real de personajes en la Fase 3 del ROADMAP.
 function App() {
-  const [lastMessage, setLastMessage] = useState('esperando ping del panel de control')
+  const [roster, setRoster] = useState<CharacterInfo[]>([]);
+  const [matchState, setMatchState] = useState<MatchState>({ match_id: null });
 
   useEffect(() => {
-    const socket = socketConnection.get()
+    fetch("/api/roster")
+      .then((res) => res.json())
+      .then((data: CharacterInfo[]) => setRoster(data))
+      .catch((err) => console.error("No se pudo cargar el roster:", err));
 
-    socket.on('ping_broadcast', (payload: { message: string }) => {
-      setLastMessage(payload.message)
-    })
+    const socket = socketConnection.get();
+    socket.on("match_state_update", (payload: MatchState) => {
+      setMatchState(payload);
+    });
 
     return () => {
-      socket.off('ping_broadcast')
-    }
-  }, [])
+      socket.off("match_state_update");
+    };
+  }, []);
 
-  return (
-    <div className="overlay-root">
-      <p>{lastMessage}</p>
-    </div>
-  )
+  return <DraftOverlay matchState={matchState} roster={roster} />;
 }
 
-export default App
+export default App;

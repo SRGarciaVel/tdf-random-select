@@ -22,6 +22,14 @@ def create_app() -> Flask:
 
     socketio.init_app(app)
 
+    @app.get("/api/roster")
+    def get_roster():
+        from flask import jsonify
+
+        from backend.app.data.sf6_roster import SF6_ROSTER
+
+        return jsonify(SF6_ROSTER)
+
     @app.get("/health")
     def health() -> tuple[str, int]:
         return "ok", 200
