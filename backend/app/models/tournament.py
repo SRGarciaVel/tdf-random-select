@@ -14,6 +14,12 @@ class Tournament(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
     bans_per_player: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    # "auto_ban" (default, banea al azar) | "skip" (el turno se pierde
+    # sin banear nada) - que pasa si se agota el timer de 30s sin que el
+    # staff haya baneado a mano. Se elige al crear el torneo (SetupScreen).
+    timeout_behavior: Mapped[str] = mapped_column(
+        String, nullable=False, default="auto_ban"
+    )
 
     matches: Mapped[list[Match]] = relationship(back_populates="tournament")
 
@@ -53,11 +59,18 @@ class MatchBan(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     match_id: Mapped[int] = mapped_column(ForeignKey("matches.id"), nullable=False)
-    character_id: Mapped[str] = mapped_column(String, nullable=False)
+    # None = este turno se salto (timeout + timeout_behavior="skip") - no
+    # se banea ningun personaje, pero el turno se consume igual.
+    character_id: Mapped[str | None] = mapped_column(String, nullable=True)
     banned_by_player_id: Mapped[int] = mapped_column(
         ForeignKey("players.id"), nullable=False
     )
     turn_order: Mapped[int] = mapped_column(Integer, nullable=False)
+    # True si este registro salio por agotar el timer de 30s (aplica
+    # tanto a un auto-baneo random como a un turno saltado) - el HUD lo
+    # usa para mostrar el icono de timeout, sin importar si hubo o no
+    # personaje baneado.
+    was_timeout: Mapped[bool] = mapped_column(nullable=False, default=False)
 
     match: Mapped[Match] = relationship(back_populates="bans")
 

@@ -123,11 +123,17 @@ class SetupScreen(QWidget):
         self._new_tournament_bans = QSpinBox()
         self._new_tournament_bans.setRange(1, 10)
         self._new_tournament_bans.setValue(1)
+        self._new_tournament_timeout_behavior = QComboBox()
+        self._new_tournament_timeout_behavior.addItem("Banear al azar", "auto_ban")
+        self._new_tournament_timeout_behavior.addItem("Saltar el turno", "skip")
 
         tournament_form = QFormLayout()
         tournament_form.addRow("Torneo", self._tournament_selector)
         tournament_form.addRow("Nombre torneo nuevo", self._new_tournament_name)
         tournament_form.addRow("Baneos por jugador", self._new_tournament_bans)
+        tournament_form.addRow(
+            "Si se agota el timer de 30s", self._new_tournament_timeout_behavior
+        )
         tournament_box = QGroupBox("Torneo")
         tournament_box.setLayout(tournament_form)
 
@@ -184,6 +190,7 @@ class SetupScreen(QWidget):
         is_new = self._tournament_selector.currentData() == NEW_TOURNAMENT_SENTINEL
         self._new_tournament_name.setEnabled(is_new)
         self._new_tournament_bans.setEnabled(is_new)
+        self._new_tournament_timeout_behavior.setEnabled(is_new)
 
     def _reload_players(self) -> None:
         with self._session_factory() as session:
@@ -232,6 +239,7 @@ class SetupScreen(QWidget):
                         session,
                         self._new_tournament_name.text(),
                         self._new_tournament_bans.value(),
+                        self._new_tournament_timeout_behavior.currentData(),
                     )
                     tournament_id = tournament.id
                 else:

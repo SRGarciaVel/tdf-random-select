@@ -177,21 +177,24 @@ auto-baneo al agotarse, reveal final en los extremos en vez de al
 centro). Ver conversación del 31-08-2026 para el detalle completo del
 diseño acordado.
 
-- [x] **Checkpoint HUD-1: timer de 30s + auto-baneo.**
-      `DraftService.auto_ban_random_character()` banea al azar en nombre
-      de quien tenga el turno, reutilizando `ban_character()` (misma
-      validación, mismo camino de auto-transición de estado) - 5 tests
-      contra SQLite real. `BanningScreen` maneja un `QTimer` real
-      (30s en producción, parámetro `timer_ms` configurable para poder
-      acortarlo en tests): arranca solo cuando el turno efectivamente
-      cambia (no en cada refresh sin motivo), se detiene fuera de
-      `BANNING`, y dispara `auto_ban_random_character()` si se agota.
-      El `deadline` se agrega al payload que recibe el overlay
-      (`turn_deadline_ms`) para que el HUD pueda dibujar la cuenta
-      regresiva sin necesitar un tick de socket por segundo. Probado
-      con un `QTimer` real acortado a 200ms (no simulado): arranca al
-      iniciar el baneo, se reinicia con cada baneo manual, y auto-banea
-      de verdad al agotarse.
+- [x] **Checkpoint HUD-1: timer de 30s + política de timeout
+      configurable.** `Tournament.timeout_behavior` ("auto_ban" | "skip",
+      elegible al crear el torneo en Setup). `DraftService.resolve_ban_timeout()`
+      resuelve según esa política: banea al azar o salta el turno sin
+      banear nada (`MatchBan.character_id = None`). `MatchBan.was_timeout`
+      marca cualquiera de los dos casos, independiente de si hubo
+      personaje — es lo que el HUD usará para el ícono de timeout.
+      `_record_turn()` centraliza la inserción + auto-transición de
+      estado, compartida entre baneo manual y timeout (sin duplicar la
+      lógica de conteo). `build_match_state_payload()` ahora expone
+      `bans` (lista completa ordenada con `character_id`/`was_timeout`)
+      además del `banned_character_ids` de siempre. 13 tests nuevos
+      contra SQLite real (auto_ban, skip, payload, y que un baneo manual
+      nunca quede marcado `was_timeout`). `BanningScreen` maneja un
+      `QTimer` real (30s en producción, `timer_ms` configurable para
+      tests): arranca solo cuando el turno cambia, se detiene fuera de
+      `BANNING`, y llama a `resolve_ban_timeout()` si se agota. Probado
+      con un `QTimer` real acortado a 200ms.
 - [ ] **Checkpoint HUD-2**: pantalla de "Broadcast Settings" en el panel
       (nombre del torneo a mostrar, logo del torneo o el de TDF por
       defecto) - configurable por el CEO.

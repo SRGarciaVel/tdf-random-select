@@ -87,7 +87,11 @@ class DraftService:
         return match.first_banner_player_id if bans_count % 2 == 0 else other_player_id
 
     def ban_character(
-        self, match_id: int, character_id: str, banned_by_player_id: int
+        self,
+        match_id: int,
+        character_id: str,
+        banned_by_player_id: int,
+        was_timeout: bool = False,
     ) -> Match:
         match = self._get_match(match_id)
         if match.status != "BANNING":
@@ -111,22 +115,7 @@ class DraftService:
                 f"'{character_id}' ya fue baneado en este match."
             )
 
-        turn_order = len(match.bans)
-        self._session.add(
-            MatchBan(
-                match_id=match.id,
-                character_id=character_id,
-                banned_by_player_id=banned_by_player_id,
-                turn_order=turn_order,
-            )
-        )
-        self._session.flush()
-        self._session.refresh(match)
-
-        total_bans_needed = match.tournament.bans_per_player * 2
-        if len(match.bans) >= total_bans_needed:
-            match.status = "RANDOMIZING"
-        self._session.commit()
+        self._record_turn(match, character_id, banned_by_player_id, was_timeout)
         return match
 
     def roll_random(self, match_id: int) -> list[MatchResult]:
@@ -138,7 +127,9 @@ class DraftService:
                 f"No se puede randomizar desde el estado {match.status}."
             )
 
-        banned_ids = {ban.character_id for ban in match.bans}
+        banned_ids = {
+            ban.character_id for ban in match.bans if ban.character_id is not None
+        }
         pool = [
             character_id
             for character_id in CHARACTER_IDS
@@ -172,19 +163,31 @@ class DraftService:
         self._session.commit()
         return match
 
-    def auto_ban_random_character(self, match_id: int) -> Match:
-        """Banea un personaje al azar en nombre de quien tenga el turno -
-        se usa cuando se agota el timer de 30s sin baneo manual (HUD de
-        baneo). Reutiliza ban_character() en vez de duplicar la
-        validacion de turno/estado.
+    def resolve_ban_timeout(self, match_id: int) -> Match:
+        """Se agotaron los 30s sin baneo manual - resuelve segun
+        tournament.timeout_behavior (HUD de baneo):
+        - "auto_ban": banea un personaje al azar en nombre de quien
+          tenia el turno.
+        - "skip": el turno se pierde, no se banea nada, pero se consume
+          igual (avanza al otro jugador).
+        En ambos casos el registro queda marcado was_timeout=True, que es
+        lo que el HUD usa para mostrar el icono de timeout - independiente
+        de si hubo o no personaje baneado.
         """
         match = self._get_match(match_id)
         if match.status != "BANNING":
             raise InvalidStateError(
-                f"No se puede auto-banear desde el estado {match.status}."
+                f"No se puede resolver un timeout desde el estado {match.status}."
             )
         current_player_id = self.current_turn_player_id(match)
-        banned_ids = {ban.character_id for ban in match.bans}
+
+        if match.tournament.timeout_behavior == "skip":
+            self._record_turn(match, None, current_player_id, was_timeout=True)
+            return match
+
+        banned_ids = {
+            ban.character_id for ban in match.bans if ban.character_id is not None
+        }
         pool = [
             character_id
             for character_id in CHARACTER_IDS
@@ -193,7 +196,38 @@ class DraftService:
         if not pool:
             raise DraftError("No quedan personajes disponibles para auto-banear.")
         character_id = random.choice(pool)
-        return self.ban_character(match_id, character_id, current_player_id)
+        self._record_turn(match, character_id, current_player_id, was_timeout=True)
+        return match
+
+    def _record_turn(
+        self,
+        match: Match,
+        character_id: str | None,
+        banned_by_player_id: int,
+        was_timeout: bool,
+    ) -> None:
+        """Inserta el registro de un turno de baneo (real o saltado) y
+        avanza el estado a RANDOMIZING si ya se completaron todos los
+        baneos configurados - compartido entre ban_character() y
+        resolve_ban_timeout() para no duplicar la logica de conteo.
+        """
+        turn_order = len(match.bans)
+        self._session.add(
+            MatchBan(
+                match_id=match.id,
+                character_id=character_id,
+                banned_by_player_id=banned_by_player_id,
+                turn_order=turn_order,
+                was_timeout=was_timeout,
+            )
+        )
+        self._session.flush()
+        self._session.refresh(match)
+
+        total_bans_needed = match.tournament.bans_per_player * 2
+        if len(match.bans) >= total_bans_needed:
+            match.status = "RANDOMIZING"
+        self._session.commit()
 
     def _get_match(self, match_id: int) -> Match:
         match = self._session.get(Match, match_id)
@@ -219,7 +253,21 @@ def build_match_state_payload(session: Session, match_id: int | None) -> dict:
 
     player_a = session.get(Player, match.player_a_id)
     player_b = session.get(Player, match.player_b_id)
-    banned_ids = sorted(ban.character_id for ban in match.bans)
+    banned_ids = sorted(
+        ban.character_id for ban in match.bans if ban.character_id is not None
+    )
+    # Lista completa en orden, con character_id=None para turnos saltados
+    # y was_timeout marcando si salio por agotar el timer (HUD checkpoint
+    # 1) - el icono de timeout se dibuja a partir de este campo, no de si
+    # hubo o no personaje.
+    bans = [
+        {
+            "character_id": ban.character_id,
+            "banned_by_player_id": ban.banned_by_player_id,
+            "was_timeout": ban.was_timeout,
+        }
+        for ban in match.bans
+    ]
 
     current_turn_player_id = None
     if match.status == "BANNING":
@@ -235,6 +283,7 @@ def build_match_state_payload(session: Session, match_id: int | None) -> dict:
         "player_a": {"id": player_a.id, "display_name": player_a.display_name},
         "player_b": {"id": player_b.id, "display_name": player_b.display_name},
         "banned_character_ids": banned_ids,
+        "bans": bans,
         "current_turn_player_id": current_turn_player_id,
         "results": results or None,
     }

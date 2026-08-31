@@ -316,7 +316,7 @@ class BanningScreen(QWidget):
             return
         try:
             with self._session_factory() as session:
-                DraftService(session).auto_ban_random_character(self._match_id)
+                DraftService(session).resolve_ban_timeout(self._match_id)
         except DraftError:
             # el estado pudo haber cambiado entre que arranco el timer y
             # que disparo (ej. el staff ya baneo a mano justo antes) - no
