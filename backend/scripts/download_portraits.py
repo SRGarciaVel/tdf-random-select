@@ -1,22 +1,32 @@
 """Descarga los retratos oficiales de los 31 personajes de SF6 desde la
-web publica de streetfighter.com (Capcom) - Fase 3, ver SPECS.md.
+web publica de streetfighter.com (Capcom), los redimensiona y convierte
+a WebP - Fase 3, ver SPECS.md.
 
 Es contenido publico servido normal, sin login ni proteccion anti-bot de
 por medio (a diferencia de Buckler's Boot Camp) - mismo criterio de
 "no automatizar evasion de sistemas anti-bot de terceros" que se aplico
 en el CFN tracker de tdf-edeportes, aca no aplica porque no hay nada que
-evadir.
+evadir (el 403 inicial era un bloqueo de CDN por User-Agent, no un
+desafio interactivo).
+
+Los originales pesan 500KB-4MB (render a resolucion completa) - demasiado
+para una pagina que OBS tiene que renderizar en vivo como Browser Source,
+asi que se redimensionan a MAX_DIMENSION_PX y se convierten a WebP en el
+mismo paso, sin guardar el PNG original en disco.
 
 Uso: python -m backend.scripts.download_portraits
+Requiere Pillow (ver requirements-dev.txt).
 """
 
 from __future__ import annotations
 
+import io
 import sys
 import time
 from pathlib import Path
 
 import requests
+from PIL import Image
 
 from backend.app.data.sf6_roster import CHARACTER_IDS
 
@@ -33,10 +43,16 @@ SITE_SLUG_OVERRIDES: dict[str, str] = {
     "c_viper": "cviper",
 }
 
-OUTPUT_DIR = Path(__file__).resolve().parents[3] / "overlay_app" / "public" / "portraits"
+OUTPUT_DIR = (
+    Path(__file__).resolve().parents[3] / "overlay_app" / "public" / "portraits"
+)
 BASE_URL = "https://www.streetfighter.com/6/assets/images/character"
 PAGE_BASE_URL = "https://www.streetfighter.com/6/es-us/character"
 REQUEST_DELAY_SECONDS = 1.0  # no golpear el sitio de Capcom sin pausas entre pedidos
+MAX_DIMENSION_PX = (
+    500  # de sobra para un grid de baneo, ni cerca de la resolucion original
+)
+WEBP_QUALITY = 85
 
 # El CDN de Capcom devuelve 403 a la firma por defecto de requests
 # ("python-requests/x.y") - no es un desafio anti-bot interactivo (no hay
@@ -59,7 +75,7 @@ def site_slug(character_id: str) -> str:
 def download_portrait(character_id: str) -> bool:
     slug = site_slug(character_id)
     url = f"{BASE_URL}/{slug}/{slug}.png"
-    destination = OUTPUT_DIR / f"{character_id}.png"
+    destination = OUTPUT_DIR / f"{character_id}.webp"
 
     if destination.exists():
         print(f"  {character_id}: ya existe, se salta.")
@@ -74,8 +90,15 @@ def download_portrait(character_id: str) -> bool:
         print(f"  {character_id}: FALLO ({response.status_code}) - {url}")
         return False
 
-    destination.write_bytes(response.content)
-    print(f"  {character_id}: OK ({len(response.content)} bytes)")
+    image = Image.open(io.BytesIO(response.content)).convert("RGBA")
+    image.thumbnail((MAX_DIMENSION_PX, MAX_DIMENSION_PX), Image.LANCZOS)
+    image.save(destination, format="WEBP", quality=WEBP_QUALITY)
+
+    original_kb = len(response.content) // 1024
+    final_kb = destination.stat().st_size // 1024
+    print(
+        f"  {character_id}: OK ({original_kb}KB -> {final_kb}KB, {image.width}x{image.height})"
+    )
     return True
 
 
@@ -90,10 +113,14 @@ def main() -> int:
             failures.append(character_id)
         time.sleep(REQUEST_DELAY_SECONDS)
 
-    print(f"\nListo: {len(CHARACTER_IDS) - len(failures)}/{len(CHARACTER_IDS)} retratos descargados.")
+    print(
+        f"\nListo: {len(CHARACTER_IDS) - len(failures)}/{len(CHARACTER_IDS)} retratos descargados."
+    )
     if failures:
         print(f"Fallaron: {', '.join(failures)}")
-        print("Revisa el slug de estos personajes a mano en streetfighter.com/6/es-us/character")
+        print(
+            "Revisa el slug de estos personajes a mano en streetfighter.com/6/es-us/character"
+        )
         return 1
     return 0
 

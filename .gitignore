@@ -7,6 +7,10 @@ __pycache__/
 overlay_app/node_modules/
 overlay_app/build/
 
+# Retratos descargados con backend/scripts/download_portraits.py -
+# se regeneran, no tiene sentido versionar binarios pesados en git.
+overlay_app/public/portraits/
+
 # PyInstaller
 build/
 dist/
