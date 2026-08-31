@@ -55,6 +55,26 @@
   habilitado y no se la pasamos — mensaje de error claro, sin necesidad
   de investigar más.
 
+## Fase 3 checkpoint A: estado final perdido al completar el reveal
+
+- **El match que pasa a `DONE` desaparece de `list_open_matches()`** (por
+  diseño, ya no hay nada pendiente que trabajar ahí) — pero eso significa
+  que `_reload_matches()` limpia la seleccion del combo justo despues de
+  `complete_reveal()`, y si se emite el estado al overlay recien en ese
+  punto, el payload que le llega es `{"match_id": None}` en vez del
+  estado `DONE` con los resultados. El test end-to-end (backend real +
+  panel real + cliente Socket.IO simulando el overlay) lo detecto
+  comparando la lista de estados recibidos contra los 5 esperados - "DONE"
+  faltaba. Arreglo: emitir el payload final explicitamente ANTES de
+  llamar a `_reload_matches()`, no depender del flujo normal de
+  `_refresh_state()` para el ultimo estado de un match que esta a punto
+  de salir de la lista.
+- **Leccion general**: cualquier accion que haga que una entidad "salga
+  de la vista" (deje de listarse, cambie de tab, etc.) es un punto donde
+  el ultimo estado se puede perder si el evento de notificacion depende
+  del mismo refresh que hace que la entidad desaparezca. Conviene emitir
+  el estado final de forma explicita, separado del refresh de la UI.
+
 ## Pendiente de validar en la máquina de Seba
 
 - Comportamiento visual del overlay dentro de un Browser Source real de

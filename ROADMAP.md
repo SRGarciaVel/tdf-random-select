@@ -113,7 +113,28 @@ donde tiene más sentido junto con el resto de la automatización de OBS.
 
 ## Fase 3 — Overlay real (React + Framer Motion)
 
-- [ ] Grilla de 31 personajes con retratos oficiales de Capcom.
+- [x] Retratos oficiales de los 31 personajes descargados y optimizados
+      (`backend/scripts/download_portraits.py` — WebP, ~50-120KB c/u,
+      bajados de 500KB-4MB originales). No se versionan en git (se
+      regeneran con el script).
+- [x] **Checkpoint A: contrato de eventos panel → overlay.**
+      `build_match_state_payload()` en `draft_service.py` arma el estado
+      completo del match (status, jugadores, baneados, turno actual,
+      resultados) — función pura, testeada contra SQLite real en cada
+      estado del draft. `OverlayBridge` (panel) lo empuja via Socket.IO
+      (`match_state_update`), con el mismo modo degradado que
+      `ObsService` si el backend no está arriba. `BanningScreen` lo
+      dispara después de cada acción. **Bug real encontrado y corregido
+      en el proceso**: al completar el reveal, el match sale de
+      `list_open_matches()` y el selector se limpia — sin emitir el
+      estado `DONE` *antes* de refrescar la lista, el overlay nunca veía
+      el reveal final, solo el match desapareciendo (ver
+      `tasks/lessons.md`). Probado de punta a punta: backend real +
+      `BanningScreen` real (clics) + cliente Socket.IO simulando el
+      overlay, confirmando que llegan los 6 estados
+      (`SETUP → BANNING → BANNING → RANDOMIZING → REVEAL → DONE`) con
+      los datos correctos en cada uno.
+- [ ] Grilla de 31 personajes con retratos oficiales de Capcom en React.
 - [ ] Animación de baneo (personaje tachado/oscurecido en el momento que
       llega el evento).
 - [ ] Animación de reveal tipo LoL para el personaje asignado a cada

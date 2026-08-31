@@ -5,7 +5,7 @@ import random
 from sqlalchemy.orm import Session
 
 from backend.app.data.sf6_roster import CHARACTER_IDS
-from backend.app.models import Match, MatchBan, MatchResult
+from backend.app.models import Match, MatchBan, MatchResult, Player
 
 
 def list_open_matches(session: Session) -> list[Match]:
@@ -177,3 +177,41 @@ class DraftService:
         if match is None:
             raise DraftError(f"No existe el match {match_id}.")
         return match
+
+
+def build_match_state_payload(session: Session, match_id: int | None) -> dict:
+    """Arma el payload que el panel de control empuja al overlay via
+    Socket.IO despues de cada accion del draft (Fase 3, ver SPECS.md).
+
+    Funcion pura de armado de datos, separada de la emision en si (que
+    vive en control_panel/overlay_bridge.py) para poder testearla contra
+    SQLite real sin necesitar un socket ni Qt (CODESTYLE.md).
+    """
+    if match_id is None:
+        return {"match_id": None}
+
+    match = session.get(Match, match_id)
+    if match is None:
+        return {"match_id": None}
+
+    player_a = session.get(Player, match.player_a_id)
+    player_b = session.get(Player, match.player_b_id)
+    banned_ids = sorted(ban.character_id for ban in match.bans)
+
+    current_turn_player_id = None
+    if match.status == "BANNING":
+        current_turn_player_id = DraftService(session).current_turn_player_id(match)
+
+    results = {
+        str(result.player_id): result.assigned_character_id for result in match.results
+    }
+
+    return {
+        "match_id": match.id,
+        "status": match.status,
+        "player_a": {"id": player_a.id, "display_name": player_a.display_name},
+        "player_b": {"id": player_b.id, "display_name": player_b.display_name},
+        "banned_character_ids": banned_ids,
+        "current_turn_player_id": current_turn_player_id,
+        "results": results or None,
+    }

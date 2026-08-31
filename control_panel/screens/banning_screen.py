@@ -19,9 +19,11 @@ from backend.app.services.character_tag_service import list_character_tags
 from backend.app.services.draft_service import (
     DraftError,
     DraftService,
+    build_match_state_payload,
     list_open_matches,
 )
 from backend.app.services.player_service import get_player
+from control_panel.overlay_bridge import OverlayBridge
 
 CHARACTER_DISPLAY_NAMES = {entry["id"]: entry["display_name"] for entry in SF6_ROSTER}
 GRID_COLUMNS = 6
@@ -31,8 +33,9 @@ class BanningScreen(QWidget):
     """Baneo en vivo del match elegido: SETUP -> BANNING -> RANDOMIZING ->
     REVEAL -> DONE (Fase 2 checkpoint 3, ver ROADMAP.md).
 
-    Todavia no dispara obs_service ni Socket.IO - eso llega en la Fase 4,
-    una vez que exista la pantalla real de configuracion de OBS.
+    Empuja el estado al overlay via Socket.IO despues de cada accion
+    (Fase 3 checkpoint A) - todavia no dispara obs_service, eso llega en
+    la Fase 4 junto con la pantalla real de configuracion de OBS.
     """
 
     def __init__(self, session_factory: sessionmaker) -> None:
@@ -40,6 +43,7 @@ class BanningScreen(QWidget):
         self._session_factory = session_factory
         self._match_id: int | None = None
         self._character_buttons: dict[str, QPushButton] = {}
+        self._overlay_bridge = OverlayBridge()
 
         self._match_selector = QComboBox()
         self._match_selector.currentIndexChanged.connect(self._on_match_selected)
@@ -114,6 +118,7 @@ class BanningScreen(QWidget):
 
     def _refresh_state(self) -> None:
         if self._match_id is None:
+            self._overlay_bridge.emit_match_state({"match_id": None})
             self._status_label.setText("Elige una partida.")
             for button in self._character_buttons.values():
                 button.setEnabled(False)
@@ -149,6 +154,10 @@ class BanningScreen(QWidget):
             current_turn_id = None
             if status == "BANNING":
                 current_turn_id = DraftService(session).current_turn_player_id(match)
+
+            state_payload = build_match_state_payload(session, self._match_id)
+
+        self._overlay_bridge.emit_match_state(state_payload)
 
         self._first_banner_selector.blockSignals(True)
         self._first_banner_selector.clear()
@@ -242,10 +251,18 @@ class BanningScreen(QWidget):
         self._reload_matches()
 
     def _on_complete_clicked(self) -> None:
+        completed_match_id = self._match_id
         try:
             with self._session_factory() as session:
-                DraftService(session).complete_reveal(self._match_id)
+                DraftService(session).complete_reveal(completed_match_id)
+                final_payload = build_match_state_payload(session, completed_match_id)
         except DraftError as exc:
             QMessageBox.warning(self, "No se pudo completar", str(exc))
             return
+
+        # Se emite antes de _reload_matches(): al pasar a DONE, el match
+        # sale de list_open_matches() y el selector queda sin nada
+        # seleccionado - sin este emit explicito, el overlay nunca ve el
+        # estado final, solo ve el match desaparecer (ver tasks/lessons.md).
+        self._overlay_bridge.emit_match_state(final_payload)
         self._reload_matches()
