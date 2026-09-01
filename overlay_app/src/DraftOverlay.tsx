@@ -76,12 +76,16 @@ function useCountdown(deadlineMs: number | null): number | null {
   return remaining;
 }
 
-function BanSlot({
+function BanCard({
+  index,
+  side,
   ban,
   roster,
   isActive,
   deadlineMs,
 }: {
+  index: number;
+  side: "left" | "right";
   ban: BanRecord | undefined;
   roster: RosterMap;
   isActive: boolean;
@@ -92,11 +96,23 @@ function BanSlot({
   const wasSkipped = ban !== undefined && ban.character_id === null;
   const isFilled = character != null || wasSkipped;
 
+  // La carta del primer baneo (index 0) va pegada al panel central, al
+  // frente del mazo (z-index mas alto). Las siguientes se asoman detras,
+  // corridas hacia el nombre del jugador, un poco mas chicas (profundidad
+  // de mazo real) - checkpoint HUD-6, ver ROADMAP.md.
+  const peekOffsetPx = index * 28;
+  const positionStyle: React.CSSProperties = {
+    zIndex: 100 - index,
+    height: `${100 - index * 5}%`,
+    [side === "left" ? "right" : "left"]: `${peekOffsetPx}px`,
+  };
+
   return (
     <motion.div
       key={isFilled ? "filled" : "empty"}
-      className={`ban-slot${isFilled ? " filled" : " empty"}${isActive ? " active" : ""}`}
-      data-testid={character ? `ban-slot-${character.id}` : undefined}
+      className={`ban-card${isFilled ? " filled" : " empty"}${isActive ? " active" : ""}`}
+      style={positionStyle}
+      data-testid={character ? `ban-card-${character.id}` : undefined}
       initial={
         character ? { scale: 1, filter: "grayscale(0)", opacity: 1 } : false
       }
@@ -141,6 +157,50 @@ function BanSlot({
   );
 }
 
+function BanCardStack({
+  side,
+  bans,
+  bansPerPlayer,
+  roster,
+  isActive,
+  deadlineMs,
+}: {
+  side: "left" | "right";
+  bans: BanRecord[];
+  bansPerPlayer: number;
+  roster: RosterMap;
+  isActive: boolean;
+  deadlineMs: number | null;
+}) {
+  const indices = Array.from({ length: bansPerPlayer }, (_, i) => i);
+
+  return (
+    <motion.div
+      className={`ban-card-stack ban-card-stack-${side}`}
+      data-testid={`ban-card-stack-${side}`}
+      // El mazo entero "nace" del panel central al arrancar el baneo -
+      // arranca corrido hacia el centro (un ancho propio de distancia) y
+      // se acomoda en su posicion final. Solo pasa una vez, al montar
+      // (cuando status pasa de SETUP a BANNING, ver PlayerSide).
+      initial={{ x: side === "left" ? "120%" : "-120%", opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      transition={{ type: "spring", stiffness: 200, damping: 24 }}
+    >
+      {indices.map((index) => (
+        <BanCard
+          key={index}
+          index={index}
+          side={side}
+          ban={bans[index]}
+          roster={roster}
+          isActive={isActive && index === bans.length}
+          deadlineMs={deadlineMs}
+        />
+      ))}
+    </motion.div>
+  );
+}
+
 function DramaticCharacterPanel({
   character,
   side,
@@ -176,6 +236,7 @@ function DramaticCharacterPanel({
 function PlayerSide({
   side,
   player,
+  status,
   bans,
   bansPerPlayer,
   roster,
@@ -184,38 +245,34 @@ function PlayerSide({
 }: {
   side: "left" | "right";
   player: PlayerInfo;
+  status: MatchState["status"];
   bans: BanRecord[];
   bansPerPlayer: number;
   roster: RosterMap;
   isActive: boolean;
   deadlineMs: number | null;
 }) {
-  const slotIndices = Array.from({ length: bansPerPlayer }, (_, i) => i);
-  const orderedIndices =
-    side === "left" ? [...slotIndices].reverse() : slotIndices;
-
   const nameLabel = (
     <div className="player-name-label">{player.display_name}</div>
   );
 
-  const slotsRow = (
-    <div className="ban-slots">
-      {orderedIndices.map((index) => (
-        <BanSlot
-          key={index}
-          ban={bans[index]}
-          roster={roster}
-          isActive={isActive && index === bans.length}
-          deadlineMs={deadlineMs}
-        />
-      ))}
-    </div>
-  );
+  // El mazo recien "nace" (se reparte desde el centro) cuando arranca el
+  // baneo - antes de eso (SETUP) no hay nada que mostrar todavia.
+  const showStack = status !== "SETUP";
 
   return (
     <div className={`player-side player-side-${side}`}>
       {side === "left" && nameLabel}
-      {slotsRow}
+      {showStack && (
+        <BanCardStack
+          side={side}
+          bans={bans}
+          bansPerPlayer={bansPerPlayer}
+          roster={roster}
+          isActive={isActive}
+          deadlineMs={deadlineMs}
+        />
+      )}
       {side === "right" && nameLabel}
     </div>
   );
@@ -342,6 +399,7 @@ export default function DraftOverlay({
           <PlayerSide
             side="left"
             player={matchState.player_a}
+            status={matchState.status}
             bans={allBans.filter(
               (ban) => ban.banned_by_player_id === matchState.player_a?.id,
             )}
@@ -364,6 +422,7 @@ export default function DraftOverlay({
           <PlayerSide
             side="right"
             player={matchState.player_b}
+            status={matchState.status}
             bans={allBans.filter(
               (ban) => ban.banned_by_player_id === matchState.player_b?.id,
             )}

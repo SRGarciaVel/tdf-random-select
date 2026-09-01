@@ -6,7 +6,6 @@
  * (github.com/RCVolus/lol-pick-ban-ui, MIT License). */
 :root {
   --hud-bottom-bar-height: 35.4vh;
-  --hud-ban-slot-size: 21vh;
 }
 
 .overlay-root.idle {
@@ -103,12 +102,18 @@
 .player-side {
   display: flex;
   align-items: flex-end;
-  gap: 0.6rem;
+  gap: 0.75rem;
   color: #f5f5f5;
   font-family: "JetBrains Mono", monospace;
-  padding: 0 20px;
+  padding: 14px 28px;
   box-sizing: border-box;
-  overflow: hidden;
+  /* align-self:stretch para que el mazo pueda usar height:100% y quedar
+   * a la misma altura que el panel central (checkpoint HUD-6, ver
+   * ROADMAP.md) - sin esto el porcentaje no tiene contra que resolverse
+   * (mismo problema que ya tuvimos con el panel central, ver
+   * tasks/lessons.md). Se saco tambien el overflow:hidden que venia
+   * cortando los nombres contra el borde. */
+  align-self: stretch;
 }
 
 .player-side-left {
@@ -125,25 +130,27 @@
   text-transform: uppercase;
   white-space: nowrap;
   padding: 0 0.5rem;
+  flex-shrink: 0;
 }
 
-.ban-slots {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.ban-slot {
+.ban-card-stack {
   position: relative;
-  width: var(--hud-ban-slot-size);
-  height: var(--hud-ban-slot-size);
+  height: 100%;
+  width: calc((var(--hud-bottom-bar-height) - 28px) * 0.62 + 90px);
+  flex-shrink: 0;
+}
+
+.ban-card {
+  position: absolute;
+  bottom: 0;
   border-radius: 4px;
   border: 2px solid #333;
   background: rgba(20, 20, 20, 0.6);
   overflow: hidden;
-  flex-shrink: 0;
+  aspect-ratio: 0.62;
 }
 
-.ban-slot.empty {
+.ban-card.empty {
   background: repeating-linear-gradient(
     45deg,
     rgba(255, 255, 255, 0.04),
@@ -153,13 +160,13 @@
   );
 }
 
-.ban-slot img {
+.ban-card img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.ban-slot.filled img {
+.ban-card.filled img {
   border-color: #900;
 }
 
@@ -206,7 +213,7 @@
   line-height: 1;
 }
 
-.ban-slot.active {
+.ban-card.active {
   border-color: var(--hud-accent-color);
 }
 

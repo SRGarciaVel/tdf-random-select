@@ -368,6 +368,31 @@ diseño acordado.
          negro, ajustada al ancho del texto (no estirada a todo el
          panel — un blanco sólido en toda esa franja se veía demasiado
          agresivo sobre el retrato).
+- [x] **Checkpoint HUD-6: mazo de cartas en vez de fila de slots.**
+      Confirmado por captura real que HUD-5.4 mejoró las cosas, pero
+      surgió una tensión matemática real: pedir que los slots midan lo
+      mismo de alto que el panel central (`35.4vh`) y que entren varios
+      lado a lado en una columna de 36% de ancho no es compatible (3
+      slots de ese alto en cuadrado no entran ni cerca). Se resolvió
+      conversando la geometría antes de tocar código: en vez de una fila
+      de cuadrados, los baneos ahora se muestran como un **mazo de
+      cartas apiladas** — la carta del primer baneo (más cercana al
+      centro) va al frente, a la altura completa del panel central; las
+      siguientes se asoman detrás, corridas hacia el nombre del jugador,
+      un poco más chicas (profundidad de mazo real). Al arrancar el
+      baneo (`SETUP → BANNING`), el mazo completo "nace" del panel
+      central con una animación de entrada — antes de eso no se muestra
+      nada (ni la franja vieja ni el mazo), para que el reparto sea un
+      gesto real y no algo que ya estaba ahí. Se evaluó y **se descartó
+      explícitamente** que cada baneo individual saliera volando del
+      centro (competiría con la transición de `layoutId` que ya usa el
+      preview grande para volar a su carta al confirmar — dos vuelos
+      simultáneos para el mismo evento se iban a pisar). De paso,
+      arreglado el corte de los nombres de jugador contra el borde de
+      pantalla (`overflow: hidden` + falta de padding en `.player-side`).
+      19 tests (subieron de 17): 2 nuevos confirmando que el mazo no
+      aparece en `SETUP` y que la carta del primer baneo ancla contra el
+      borde más cercano al centro.
 
 ## Fase 4 — Automatización completa de OBS
 

@@ -46,7 +46,7 @@ describe("DraftOverlay (HUD)", () => {
     expect(screen.getByText("Esperando partida...")).toBeInTheDocument();
   });
 
-  it("en SETUP dibuja bans_per_player slots vacios por jugador, sin panel dramatico", () => {
+  it("en SETUP no muestra el mazo todavia (se reparte recien al arrancar el baneo)", () => {
     render(
       <DraftOverlay
         matchState={baseState}
@@ -54,12 +54,59 @@ describe("DraftOverlay (HUD)", () => {
         broadcastSettings={defaultBroadcastSettings}
       />,
     );
-    const emptySlots = document.querySelectorAll(".ban-slot.empty");
-    expect(emptySlots).toHaveLength(4); // 2 por jugador
+    expect(screen.queryByTestId("ban-card-stack-left")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("ban-card-stack-right"),
+    ).not.toBeInTheDocument();
     expect(screen.getByText("Sirxtias")).toBeInTheDocument();
     expect(screen.getByText("Drachen")).toBeInTheDocument();
     expect(screen.queryByTestId("dramatic-left")).not.toBeInTheDocument();
     expect(screen.queryByTestId("dramatic-right")).not.toBeInTheDocument();
+  });
+
+  it("en BANNING el mazo nace (se reparte desde el centro) con bans_per_player cartas por jugador", () => {
+    const state: MatchState = {
+      ...baseState,
+      status: "BANNING",
+      current_turn_player_id: playerA.id,
+    };
+    render(
+      <DraftOverlay
+        matchState={state}
+        roster={roster}
+        broadcastSettings={defaultBroadcastSettings}
+      />,
+    );
+    const leftStack = screen.getByTestId("ban-card-stack-left");
+    const rightStack = screen.getByTestId("ban-card-stack-right");
+    expect(leftStack.querySelectorAll(".ban-card")).toHaveLength(2); // bans_per_player=2
+    expect(rightStack.querySelectorAll(".ban-card")).toHaveLength(2);
+  });
+
+  it("la carta del primer baneo queda anclada al borde mas cercano al centro", () => {
+    const state: MatchState = {
+      ...baseState,
+      status: "BANNING",
+      current_turn_player_id: playerA.id,
+    };
+    render(
+      <DraftOverlay
+        matchState={state}
+        roster={roster}
+        broadcastSettings={defaultBroadcastSettings}
+      />,
+    );
+    const leftCards = screen
+      .getByTestId("ban-card-stack-left")
+      .querySelectorAll(".ban-card");
+    // index 0 (primer baneo) ancla con right:0px -> pegado al centro del lado izquierdo
+    expect((leftCards[0] as HTMLElement).style.right).toBe("0px");
+
+    const rightCards = screen
+      .getByTestId("ban-card-stack-right")
+      .querySelectorAll(".ban-card");
+    // del lado derecho, pegado al centro es left:0px
+    expect((rightCards[0] as HTMLElement).style.left).toBe("0px");
   });
 
   it("un baneo real llena el slot con el retrato y el tajo", () => {
@@ -82,9 +129,9 @@ describe("DraftOverlay (HUD)", () => {
         broadcastSettings={defaultBroadcastSettings}
       />,
     );
-    expect(screen.getByTestId("ban-slot-ryu")).toBeInTheDocument();
+    expect(screen.getByTestId("ban-card-ryu")).toBeInTheDocument();
     expect(
-      screen.getByTestId("ban-slot-ryu").querySelector(".ban-slash"),
+      screen.getByTestId("ban-card-ryu").querySelector(".ban-slash"),
     ).toBeInTheDocument();
     expect(screen.queryByTestId("timeout-icon")).not.toBeInTheDocument();
   });
@@ -133,7 +180,7 @@ describe("DraftOverlay (HUD)", () => {
         broadcastSettings={defaultBroadcastSettings}
       />,
     );
-    expect(screen.getByTestId("ban-slot-luke")).toBeInTheDocument();
+    expect(screen.getByTestId("ban-card-luke")).toBeInTheDocument();
     expect(screen.getByTestId("timeout-icon")).toBeInTheDocument();
   });
 
@@ -157,7 +204,7 @@ describe("DraftOverlay (HUD)", () => {
         broadcastSettings={defaultBroadcastSettings}
       />,
     );
-    expect(document.querySelectorAll(".ban-slot.active")).toHaveLength(1);
+    expect(document.querySelectorAll(".ban-card.active")).toHaveLength(1);
   });
 
   describe("countdown", () => {
