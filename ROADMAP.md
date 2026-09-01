@@ -337,6 +337,22 @@ diseño acordado.
          end`, así que el porcentaje no tenía contra qué resolverse de
          forma predecible). Cambiado a `align-self: stretch`, explícito
          y sin ambigüedad (ver `tasks/lessons.md`).
+- [x] **Checkpoint HUD-5.3: rediseño del panel central (vidrio + VS
+      grande).** Confirmado por captura real que la calidad de imagen y
+      el panel central ya no flotan mal — quedaba una observación de
+      diseño, no un bug: la caja gris opaca del centro se veía
+      desconectada del resto (todo lo demás usa transparencias/
+      degradados). Acordado en el chat con dos mockups antes de
+      programar: (1) fondo tipo "vidrio esmerilado" (`backdrop-filter:
+      blur` + gradiente semi-transparente en vez de color plano, borde
+      fino con el color de acento, brillo sutil) reemplazando la caja
+      opaca; (2) el logo/nombre del torneo bajan de tamaño y pasan a ser
+      un detalle chico arriba — el elemento dominante ahora es un **"VS"
+      grande** con glow del color de acento (más apropiado para un 1v1
+      que un logo institucional chico, que además se veía ilegible a
+      ese tamaño). Default de `panel_background_color` bajado de 0.85 a
+      0.35 de opacidad para que el efecto vidrio se note. 1 test nuevo
+      (17 en total) confirmando que el "VS" está siempre presente.
 
 ## Fase 4 — Automatización completa de OBS
 

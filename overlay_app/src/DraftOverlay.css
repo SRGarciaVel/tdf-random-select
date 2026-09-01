@@ -24,7 +24,7 @@
   /* Defaults = paleta magenta/violeta del club - se sobreescriben con
    * inline style desde BroadcastSettings (checkpoint HUD-5). */
   --hud-accent-color: #c400ff;
-  --hud-panel-bg-color: rgba(5, 5, 6, 0.85);
+  --hud-panel-bg-color: rgba(10, 5, 15, 0.35);
 }
 
 /* --- Panel dramatico full-height (preview de baneo + reveal, HUD-5) --- */
@@ -250,13 +250,19 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.25rem;
+  gap: 0.3rem;
   text-align: center;
   color: #f5f5f5;
   font-family: "JetBrains Mono", monospace;
-  background: var(--hud-panel-bg-color);
+  /* Vidrio esmerilado en vez de una caja opaca plana - se integra con
+   * el resto del HUD en vez de taparlo (ajustado a pedido de Seba tras
+   * ver el panel gris sin gracia en la prueba real). */
+  background: linear-gradient(180deg, var(--hud-panel-bg-color), transparent);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--hud-accent-color);
+  box-shadow: 0 0 20px var(--hud-accent-color);
   border-radius: 6px;
-  padding: 0.75rem;
+  padding: 0.6rem;
   /* align-self:stretch en vez de height:80% (que era ambiguo dentro de
    * una celda de grid con align-items:end en el padre y provocaba que
    * el panel quedara "flotando" mal posicionado, ver tasks/lessons.md) -
@@ -265,20 +271,48 @@
   box-sizing: border-box;
 }
 
+.center-panel-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
 .center-logo {
-  max-height: 48px;
-  max-width: 140px;
+  max-height: 16px;
+  max-width: 60px;
   object-fit: contain;
 }
 
 .center-label {
-  font-size: 0.85rem;
-  font-weight: 700;
+  font-size: 0.6rem;
+  font-weight: 600;
   text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.75;
+}
+
+.center-vs {
+  font-size: 2.1rem;
+  font-weight: 800;
   letter-spacing: 0.05em;
+  color: #fff;
+  text-shadow:
+    0 0 12px var(--hud-accent-color),
+    0 0 24px var(--hud-accent-color);
+}
+
+.center-divider {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--hud-accent-color),
+    transparent
+  );
 }
 
 .center-status {
   font-size: 0.75rem;
-  opacity: 0.8;
+  opacity: 0.85;
 }

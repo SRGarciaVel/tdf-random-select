@@ -235,17 +235,21 @@ function CenterPanel({
 
   return (
     <div className="center-panel">
-      {broadcastSettings?.logo_url && (
-        <img
-          className="center-logo"
-          src={broadcastSettings.logo_url}
-          alt=""
-          onError={(event) => {
-            event.currentTarget.style.display = "none";
-          }}
-        />
-      )}
-      {label && <div className="center-label">{label}</div>}
+      <div className="center-panel-brand">
+        {broadcastSettings?.logo_url && (
+          <img
+            className="center-logo"
+            src={broadcastSettings.logo_url}
+            alt=""
+            onError={(event) => {
+              event.currentTarget.style.display = "none";
+            }}
+          />
+        )}
+        {label && <span className="center-label">{label}</span>}
+      </div>
+      <div className="center-vs">VS</div>
+      <div className="center-divider" />
       <div className="center-status">{statusMessage(matchState)}</div>
     </div>
   );
@@ -293,7 +297,7 @@ export default function DraftOverlay({
 
   const accentColor = broadcastSettings?.accent_color || "#c400ff";
   const panelBackgroundColor =
-    broadcastSettings?.panel_background_color || "rgba(5, 5, 6, 0.85)";
+    broadcastSettings?.panel_background_color || "rgba(10, 5, 15, 0.35)";
 
   const leftDramaticCharacter = matchState.player_a
     ? dramaticCharacterFor(matchState.player_a.id)

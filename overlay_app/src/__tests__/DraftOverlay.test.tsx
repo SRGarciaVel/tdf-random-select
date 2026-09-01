@@ -31,7 +31,7 @@ const defaultBroadcastSettings: BroadcastSettings = {
   logo_choice: "tdf",
   logo_url: null,
   accent_color: "#c400ff",
-  panel_background_color: "rgba(5, 5, 6, 0.85)",
+  panel_background_color: "rgba(10, 5, 15, 0.35)",
 };
 
 describe("DraftOverlay (HUD)", () => {
@@ -301,6 +301,17 @@ describe("DraftOverlay (HUD)", () => {
         />,
       );
       expect(screen.getByText("Torneo de prueba")).toBeInTheDocument();
+    });
+
+    it("muestra un VS grande como elemento dominante, siempre", () => {
+      render(
+        <DraftOverlay
+          matchState={baseState}
+          roster={roster}
+          broadcastSettings={defaultBroadcastSettings}
+        />,
+      );
+      expect(screen.getByText("VS")).toBeInTheDocument();
     });
 
     it("muestra el estado del draft en el panel central", () => {

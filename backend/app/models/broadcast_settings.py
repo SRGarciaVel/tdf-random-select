@@ -30,5 +30,5 @@ class BroadcastSettings(Base):
     # en el overlay. Defaults = la paleta magenta/violeta actual del club.
     accent_color: Mapped[str] = mapped_column(String, nullable=False, default="#c400ff")
     panel_background_color: Mapped[str] = mapped_column(
-        String, nullable=False, default="rgba(5, 5, 6, 0.85)"
+        String, nullable=False, default="rgba(10, 5, 15, 0.35)"
     )
