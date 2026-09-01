@@ -6,7 +6,7 @@
  * (github.com/RCVolus/lol-pick-ban-ui, MIT License). */
 :root {
   --hud-bottom-bar-height: 35.4vh;
-  --hud-ban-slot-size: 15vh;
+  --hud-ban-slot-size: 21vh;
 }
 
 .overlay-root.idle {
@@ -57,23 +57,26 @@
 .dramatic-panel-name-bar {
   position: absolute;
   bottom: 24px;
-  left: 0;
-  right: 0;
-  padding: 10px 24px;
+  padding: 8px 20px;
+  width: fit-content;
 }
 
 .dramatic-panel-left .dramatic-panel-name-bar {
-  background: linear-gradient(90deg, var(--hud-accent-color), transparent);
+  left: 0;
+  background: #fff;
   text-align: left;
+  border-radius: 0 4px 4px 0;
 }
 
 .dramatic-panel-right .dramatic-panel-name-bar {
-  background: linear-gradient(270deg, var(--hud-accent-color), transparent);
+  right: 0;
+  background: #fff;
   text-align: right;
+  border-radius: 4px 0 0 4px;
 }
 
 .dramatic-panel-name {
-  color: #fff;
+  color: #111;
   font-family: "JetBrains Mono", monospace;
   font-size: 1.5rem;
   font-weight: 700;
@@ -249,7 +252,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   gap: 0.3rem;
   text-align: center;
   color: #f5f5f5;
@@ -262,7 +265,7 @@
   border: 1px solid var(--hud-accent-color);
   box-shadow: 0 0 20px var(--hud-accent-color);
   border-radius: 6px;
-  padding: 0.6rem;
+  padding: 1.2rem 0.6rem;
   /* align-self:stretch en vez de height:80% (que era ambiguo dentro de
    * una celda de grid con align-items:end en el padre y provocaba que
    * el panel quedara "flotando" mal posicionado, ver tasks/lessons.md) -
@@ -292,13 +295,21 @@
 }
 
 .center-vs {
-  font-size: 2.1rem;
+  font-size: 2.8rem;
   font-weight: 800;
   letter-spacing: 0.05em;
   color: #fff;
   text-shadow:
     0 0 12px var(--hud-accent-color),
     0 0 24px var(--hud-accent-color);
+}
+
+.center-panel-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
 }
 
 .center-divider {

@@ -249,8 +249,10 @@ function CenterPanel({
         {label && <span className="center-label">{label}</span>}
       </div>
       <div className="center-vs">VS</div>
-      <div className="center-divider" />
-      <div className="center-status">{statusMessage(matchState)}</div>
+      <div className="center-panel-footer">
+        <div className="center-divider" />
+        <div className="center-status">{statusMessage(matchState)}</div>
+      </div>
     </div>
   );
 }

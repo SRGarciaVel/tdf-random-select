@@ -353,6 +353,21 @@ diseño acordado.
       ese tamaño). Default de `panel_background_color` bajado de 0.85 a
       0.35 de opacidad para que el efecto vidrio se note. 1 test nuevo
       (17 en total) confirmando que el "VS" está siempre presente.
+- [x] **Checkpoint HUD-5.4: pulido final tras confirmación visual real
+      del checkpoint anterior.** 3 ajustes:
+      1. Slots de baneo agrandados (`--hud-ban-slot-size` de 15vh a
+         21vh) — se veían chicos al lado del panel central alto.
+      2. Contenido del panel central redistribuido: pasó de
+         `justify-content: center` (todo apretado al medio, mucho
+         espacio vacío arriba/abajo) a `justify-content: space-between`
+         con 3 grupos (marca arriba, VS al medio — ahora más grande,
+         2.1rem → 2.8rem —, estado abajo), usando todo el alto
+         disponible del panel.
+      3. La barra de nombre del panel dramático pasó del degradado
+         magenta-a-transparente a una placa blanca sólida con texto
+         negro, ajustada al ancho del texto (no estirada a todo el
+         panel — un blanco sólido en toda esa franja se veía demasiado
+         agresivo sobre el retrato).
 
 ## Fase 4 — Automatización completa de OBS
 
