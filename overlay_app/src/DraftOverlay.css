@@ -24,6 +24,9 @@
    * inline style desde BroadcastSettings (checkpoint HUD-5). */
   --hud-accent-color: #c400ff;
   --hud-panel-bg-color: rgba(10, 5, 15, 0.35);
+  /* Angulo del corte diagonal de las cartas de baneo (checkpoint HUD-8)
+   * - mismo valor para todas, asi encajan como piezas al pegarse. */
+  --ban-card-skew: 14px;
 }
 
 /* --- Panel dramatico full-height (preview de baneo + reveal, HUD-5) --- */
@@ -51,6 +54,13 @@
   object-fit: cover;
   /* Encuadre tipo busto: torso hacia arriba, no el cuerpo completo. */
   object-position: center 15%;
+  /* Prueba: mismo recorte diagonal que las cartas de baneo, en % (no
+   * px) para que la proporcion se mantenga sin importar el tamaño real
+   * - asi el vuelo del layoutId entre este retrato y su carta no
+   * "salta" de forma al aterrizar (checkpoint HUD-8, a pedido de Seba:
+   * "probemos que tal queda"). Si no convence, sacar estas dos lineas
+   * (clip-path) alcanza para volver al rectangulo normal. */
+  clip-path: polygon(6% 0, 100% 0, 94% 100%, 0 100%);
 }
 
 .dramatic-panel-plates {
@@ -209,7 +219,6 @@
 .ban-row {
   display: flex;
   align-items: flex-end;
-  gap: 6px;
   height: 100%;
   min-height: 0;
 }
@@ -221,43 +230,73 @@
   flex-shrink: 0;
 }
 
+/* --- Carta con marco blanco tipo paralelogramo (checkpoint HUD-8,
+ * mismo lenguaje visual que las placas de nombre - clip-path con dos
+ * cortes diagonales PARALELOS entre si, para que encajen unas con
+ * otras sin espacio real entre ellas, ver ROADMAP.md). El angulo
+ * (--ban-card-skew) es fijo en px para las cartas chicas: todas usan
+ * el mismo valor, por eso tesela perfecto. */
 .ban-card {
   position: relative;
-  border-radius: 4px;
-  border: 2px solid #333;
-  background: rgba(20, 20, 20, 0.6);
-  overflow: hidden;
   aspect-ratio: 0.62;
   flex-shrink: 0;
+  background: #fff;
+  clip-path: polygon(
+    var(--ban-card-skew) 0,
+    100% 0,
+    calc(100% - var(--ban-card-skew)) 100%,
+    0 100%
+  );
+  /* Costura gris entre cartas: un borde que el mismo clip-path recorta
+   * en diagonal junto con el resto de la caja - al pegar la siguiente
+   * carta encima (margin-left negativo, mismo angulo), esta linea
+   * queda exactamente en la costura donde encajan (a pedido de Seba:
+   * "un gris que tenga coherencia visual con la card", no negro puro
+   * porque el marco es blanco). */
+  border-right: 2px solid #9a9a9a;
 }
 
 .ban-row .ban-card {
   height: 100%;
 }
 
+.ban-row .ban-card:not(:first-child) {
+  /* Pega esta carta contra la anterior por el corte diagonal, sin
+   * espacio real entre ellas - el margen negativo exacto al angulo del
+   * clip-path hace que ambos cortes coincidan en la misma linea. */
+  margin-left: calc(var(--ban-card-skew) * -1);
+}
+
+.ban-row .ban-card:last-child {
+  border-right: none;
+}
+
 .ban-empty-stack .ban-card {
   position: absolute;
   bottom: 0;
+  /* Apagadas/compactas - siguen siendo parte del diseño pero no
+   * compiten visualmente con las ya baneadas (a pedido de Seba: "no
+   * importa que no se vean bien, son placeholders"). */
+  opacity: 0.55;
+  background: rgba(255, 255, 255, 0.35);
 }
 
-.ban-card.empty {
-  background: repeating-linear-gradient(
-    45deg,
-    rgba(255, 255, 255, 0.04),
-    rgba(255, 255, 255, 0.04) 6px,
-    transparent 6px,
-    transparent 14px
-  );
+.ban-card-inner {
+  position: absolute;
+  inset: 5% 14%;
+  overflow: hidden;
+  background: rgba(15, 15, 18, 0.85);
+  /* Clip-path en % (no px) - mismo criterio que el retrato del panel
+   * dramatico, asi la transicion de layoutId entre ambos (el vuelo del
+   * preview hacia su carta) no "salta" de forma al aterrizar, aunque
+   * los tamaños absolutos sean muy distintos. */
+  clip-path: polygon(14% 0, 100% 0, 86% 100%, 0 100%);
 }
 
-.ban-card img {
+.ban-card-inner img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-
-.ban-card.filled img {
-  border-color: #900;
 }
 
 .ban-slash {
@@ -304,13 +343,22 @@
 }
 
 .ban-card.active {
-  border-color: var(--hud-accent-color);
+  /* drop-shadow (no box-shadow) porque sigue la forma real de los
+   * pixeles visibles, incluido el clip-path - un box-shadow normal
+   * dibujaria un halo rectangular que se saldria del paralelogramo. */
+  filter: drop-shadow(0 0 8px var(--hud-accent-color));
 }
 
 .active-glow {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  clip-path: polygon(
+    var(--ban-card-skew) 0,
+    100% 0,
+    calc(100% - var(--ban-card-skew)) 100%,
+    0 100%
+  );
   background: linear-gradient(
     135deg,
     var(--hud-accent-color),

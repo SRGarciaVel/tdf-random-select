@@ -105,33 +105,38 @@ function FilledBanCard({ ban, roster }: { ban: BanRecord; roster: RosterMap }) {
     <motion.div
       className="ban-card filled"
       data-testid={character ? `ban-card-${character.id}` : undefined}
-      initial={{ scale: 1, filter: "grayscale(0)", opacity: 1 }}
-      animate={{ scale: [1, 1.08, 1], filter: "grayscale(1)", opacity: 0.55 }}
+      initial={{ scale: 1, opacity: 1 }}
+      animate={{ scale: [1, 1.08, 1], opacity: 1 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
     >
-      {character ? (
-        <>
-          <motion.img
-            layoutId={`char-${character.id}`}
-            src={portraitUrl(character.id)}
-            alt={character.display_name}
-          />
-          <BanSlash />
-        </>
-      ) : (
-        <div className="skipped-marker" data-testid="skipped-marker">
-          —
-        </div>
-      )}
-      {ban.was_timeout && (
-        <div
-          className="timeout-icon"
-          data-testid="timeout-icon"
-          title="Se agotó el tiempo"
-        >
-          ⏱
-        </div>
-      )}
+      <div className="ban-card-inner">
+        {character ? (
+          <>
+            <motion.img
+              layoutId={`char-${character.id}`}
+              src={portraitUrl(character.id)}
+              alt={character.display_name}
+              initial={{ filter: "grayscale(0)" }}
+              animate={{ filter: "grayscale(1)" }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+            />
+            <BanSlash />
+          </>
+        ) : (
+          <div className="skipped-marker" data-testid="skipped-marker">
+            —
+          </div>
+        )}
+        {ban.was_timeout && (
+          <div
+            className="timeout-icon"
+            data-testid="timeout-icon"
+            title="Se agotó el tiempo"
+          >
+            ⏱
+          </div>
+        )}
+      </div>
     </motion.div>
   );
 }

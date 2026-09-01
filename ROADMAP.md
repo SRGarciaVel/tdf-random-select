@@ -498,6 +498,43 @@ diseño acordado.
       HUD-7.3 (centrado del mazo) no alcanzaba: el mazo podía estar
       bien centrado *dentro de su columna*, pero la columna entera
       estaba mal ubicada en la pantalla.
+- [x] **Checkpoint HUD-8: cartas de baneo con marco tipo paralelogramo,
+      mismo lenguaje visual que las placas de nombre.** A pedido de
+      Seba: las cartas de baneo (tanto las pendientes/compactas como la
+      fila de ya baneadas) pasan de rectángulos con borde a un marco
+      blanco con `clip-path` de paralelogramo (dos cortes diagonales
+      paralelos entre sí, mismo lenguaje visual que las placas de
+      nombre de HUD-7). Encajan entre sí sin espacio real: mismo ángulo
+      de corte para todas (`--ban-card-skew`), margen negativo exacto
+      al ángulo para que el corte de una carta coincida con el de la
+      siguiente, y un `border-right` que el propio `clip-path` recorta
+      en diagonal, quedando como la costura gris entre cartas (gris, no
+      negro, para no chocar contra el marco blanco - a pedido explícito
+      de Seba). El retrato vive en un nuevo wrapper `.ban-card-inner`
+      con su propio recorte diagonal, esta vez en **porcentaje** (no
+      px) — mismo criterio para el retrato grande del panel dramático
+      (`.dramatic-panel-img`, aplicado como prueba a pedido de Seba:
+      "veamos qué tal queda", queda comentado en el CSS cómo revertirlo
+      si no convence): al compartir la misma unidad relativa entre
+      ambos, la transición de `layoutId` (el vuelo del preview grande
+      hacia su carta al confirmar el baneo) no "salta" de forma al
+      aterrizar, aunque los tamaños absolutos sean muy distintos.
+      Estado activo (turno actual) cambiado de `border-color` a
+      `filter: drop-shadow()` — un `box-shadow` normal dibuja un halo
+      rectangular que se saldría del paralelogramo, `drop-shadow` sigue
+      la forma real de los píxeles visibles. Explícitamente fuera de
+      alcance de este checkpoint (a pedido de Seba, se trabaja después):
+      el efecto de "refresco" al banear (degradé de arriba hacia abajo)
+      y el panel de estadísticas por CFN con toggle manual del staff.
+- [ ] **Checkpoint HUD-9 (pendiente): efecto de refresco al banear +
+      panel de estadísticas CFN.** Al confirmarse un baneo, un efecto
+      de "refresco" en degradé de arriba hacia abajo sobre la carta; el
+      personaje desaparece y, en vez de un timer fijo, el staff puede
+      **habilitar manualmente desde el panel** que se muestren las
+      estadísticas de ese jugador con ese personaje (usa el CFN ID que
+      ya se carga al inscribir jugadores, hoy sin uso en el flujo del
+      draft). Discutido y explícitamente pospuesto hasta terminar el
+      diseño visual de las cartas (HUD-8).
 
 ## Fase 4 — Automatización completa de OBS
 
