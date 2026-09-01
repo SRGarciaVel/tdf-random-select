@@ -285,6 +285,45 @@ diseño acordado.
       espacio con el juego). Se evitó `color-mix()` en el CSS del brillo
       pulsante por compatibilidad con versiones de CEF más viejas.
 
+- [x] **Checkpoint HUD-5.1: correcciones tras la primera prueba real en
+      la máquina de Seba.** 4 problemas encontrados y resueltos:
+      1. **Bug real de carrera**: seleccionar un personaje llamaba a
+         `_refresh_state()` completo, que además de actualizar el botón
+         **también reemitía `match_state_update`** — y en el overlay,
+         cualquier `match_state_update` borra el preview del candidato
+         (para limpiar restos viejos tras una acción real). El preview
+         llegaba y medio segundo después se borraba solo. Mi test de
+         Python original no lo detectó porque nunca ejercitó la lógica
+         real del navegador (`App.tsx`), solo confirmó que el evento
+         viajaba por el socket. Arreglado: `_on_character_selected()`
+         ya no llama a `_refresh_state()`, solo actualiza el botón
+         localmente y emite el preview — el `match_state_update` real
+         solo sale al Bloquear/timeout/randomizar/completar. Test
+         end-to-end nuevo verificando el conteo exacto de eventos por
+         cada acción.
+      2. **Nombre del jugador desalineado entre lados**: el boilerplate
+         de Vite dejó `#root { text-align: center; width: 1126px; ... }`
+         sin limpiar en `index.css`. Como `text-align` se hereda
+         (aunque `position: fixed` no respete el layout del padre), el
+         lado izquierdo heredaba "centrado" mientras el derecho lo
+         pisaba a mano con `text-align: right` — por eso solo P2 se
+         veía "bien". Se limpió `index.css` del boilerplate entero (ya
+         no lo necesitábamos) en vez de parchar cada componente, más
+         `text-align: left` explícito por las dudas.
+      3. **Slots de baneo muy chicos**: reemplazado el truco de
+         `calc(50% ± offset)` por un `grid-template-columns: 36% 20.8%
+         36.2%` explícito, con la franja completa a `35.4vh` de alto —
+         proporciones reales que Seba sacó de un HUD de torneo de LoL.
+         Slots subieron de 70px fijos a `15vh` (escalan con la
+         resolución del canvas de OBS).
+      4. **Calidad de imagen mala en el panel dramático**: los retratos
+         se habían optimizado a WebP ~500px para los slots chicos, pero
+         el panel dramático los estira a ~44% del ancho de pantalla —
+         se nota la compresión. `download_portraits.py` ahora genera
+         **dos tamaños por personaje** desde la misma descarga: WebP
+         chico (slots) + **PNG grande** (`portraits-large/`, hasta
+         1200px, sin comprimir) para el panel dramático.
+
 ## Fase 4 — Automatización completa de OBS
 
 - [ ] Pantalla de configuración de OBS en el panel: reemplaza las env

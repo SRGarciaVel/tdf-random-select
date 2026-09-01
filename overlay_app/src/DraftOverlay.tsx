@@ -23,6 +23,13 @@ function portraitUrl(characterId: string): string {
   return `/portraits/${characterId}.webp`;
 }
 
+// Panel dramatico full-height: se nota la calidad a ese tamaño, por eso
+// usa la carpeta grande en PNG en vez de los WebP chicos de los slots
+// (checkpoint HUD-5, corregido a pedido de Seba tras ver el HUD real).
+function portraitUrlLarge(characterId: string): string {
+  return `/portraits-large/${characterId}.png`;
+}
+
 function statusMessage(matchState: MatchState): string {
   const { status, player_a, player_b, current_turn_player_id } = matchState;
   if (status === "SETUP") return "Listo para banear";
@@ -156,7 +163,7 @@ function DramaticCharacterPanel({
       <motion.img
         layoutId={`char-${character.id}`}
         className="dramatic-panel-img"
-        src={portraitUrl(character.id)}
+        src={portraitUrlLarge(character.id)}
         alt={character.display_name}
       />
       <div className="dramatic-panel-name-bar">

@@ -244,7 +244,7 @@ describe("DraftOverlay (HUD)", () => {
       const left = screen.getByTestId("dramatic-left");
       expect(left.querySelector("img")).toHaveAttribute(
         "src",
-        "/portraits/ryu.webp",
+        "/portraits-large/ryu.png",
       );
       expect(left).toHaveTextContent("Ryu");
       expect(left).not.toHaveTextContent("Luke"); // el candidatePreview viejo no se cuela
@@ -252,7 +252,7 @@ describe("DraftOverlay (HUD)", () => {
       const right = screen.getByTestId("dramatic-right");
       expect(right.querySelector("img")).toHaveAttribute(
         "src",
-        "/portraits/chun_li.webp",
+        "/portraits-large/chun_li.png",
       );
       expect(right).toHaveTextContent("Chun-Li");
     });

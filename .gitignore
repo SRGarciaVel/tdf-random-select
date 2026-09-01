@@ -10,6 +10,7 @@ overlay_app/build/
 # Retratos descargados con backend/scripts/download_portraits.py -
 # se regeneran, no tiene sentido versionar binarios pesados en git.
 overlay_app/public/portraits/
+overlay_app/public/portraits-large/
 
 # Logos subidos desde la pantalla de Transmisión (BroadcastSettingsScreen) -
 # mismo criterio que los retratos, son binarios subidos por el staff.

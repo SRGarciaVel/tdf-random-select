@@ -266,12 +266,29 @@ class BanningScreen(QWidget):
     def _on_character_selected(self, character_id: str) -> None:
         if self._match_id is None or self._current_turn_key is None:
             return
+        # No llama a _refresh_state() a proposito: eso re-emite
+        # match_state_update, y en el overlay CUALQUIER match_state_update
+        # borra el preview del candidato (para limpiar restos viejos
+        # despues de una accion real). Seleccionar no es una accion real
+        # todavia - si reemitieramos el estado ahi, el preview que
+        # acabamos de mandar se borraria solo medio segundo despues (bug
+        # real encontrado por Seba, ver tasks/lessons.md).
+        previous_selection = self._selected_character_id
         self._selected_character_id = character_id
+        if (
+            previous_selection is not None
+            and previous_selection in self._character_buttons
+        ):
+            self._character_buttons[previous_selection].setStyleSheet("")
+        self._character_buttons[character_id].setStyleSheet(
+            "background-color: #c400ff; color: white;"
+        )
+        self._lock_in_button.setEnabled(True)
+
         _, current_turn_player_id = self._current_turn_key
         self._overlay_bridge.emit_ban_candidate_preview(
             character_id, current_turn_player_id
         )
-        self._refresh_state()
 
     def _on_lock_in_clicked(self) -> None:
         if self._match_id is None or self._selected_character_id is None:

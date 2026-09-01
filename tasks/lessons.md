@@ -107,6 +107,51 @@
   arriba, (2) la misma URL carga bien en un navegador normal de Windows,
   (3) recién ahí, si OBS sigue en blanco, refrescar su caché.
 
+## Seleccionar un candidato borraba su propio preview (carrera)
+
+- **Cualquier acción que reemita `match_state_update` limpia el preview
+  del candidato en el overlay** (diseño intencional: limpiar restos
+  viejos tras una acción real). El bug: `_on_character_selected()`
+  llamaba a `_refresh_state()` completo para actualizar el resaltado del
+  botón, y `_refresh_state()` **también** reemite `match_state_update`
+  como efecto colateral. Resultado: el preview llegaba, y milisegundos
+  después el propio acto de seleccionar lo borraba solo.
+- **Por qué mi test de Python no lo agarró**: `test_ban_candidate_preview.py`
+  solo verificaba que el evento `ban_candidate_preview` viajara por el
+  socket real - nunca ejercitó la lógica de `App.tsx` que limpia el
+  preview al recibir `match_state_update`. Un test E2E puede confirmar
+  que "el mensaje llegó" sin confirmar que "el mensaje sobrevivió" si no
+  simula el consumidor real completo. Lección: cuando dos sistemas se
+  comunican por eventos y uno tiene reglas de "el evento X invalida el
+  evento Y", los tests tienen que cubrir la INTERACCIÓN entre ambos
+  tipos de evento, no cada uno por separado.
+- **Regla para este proyecto**: las acciones que solo cambian estado
+  local de UI (como seleccionar sin confirmar) no deben disparar
+  `emit_match_state()` bajo ningún motivo - solo las acciones que
+  representan un cambio real y persistido del draft (baneo confirmado,
+  timeout resuelto, randomizar, completar) tienen permiso de reemitir el
+  estado completo.
+
+## Boilerplate de Vite sin limpiar causó un bug de alineación real
+
+- **`index.css` seguía con el boilerplate original de Vite**:
+  `#root { text-align: center; width: 1126px; margin: 0 auto; ... }`.
+  Como `text-align` es una propiedad heredada (a diferencia del layout
+  de `position`, que si escapa del padre con `position: fixed`), un
+  componente que no fija su propio `text-align` explícito hereda lo que
+  sea que diga el ancestro más cercano que sí lo defina - en este caso,
+  "centrado", sin que nadie lo haya pedido a propósito.
+- **Cómo se manifestó**: el nombre del jugador de la izquierda en el
+  panel dramático (HUD-5) se veía descentrado/mal ubicado, mientras que
+  el de la derecha se veía bien - porque el de la derecha SÍ tenía
+  `text-align: right` explícito (para el efecto espejado), y por
+  casualidad esa declaración explícita tapaba el problema heredado.
+- **Regla general**: al armar un proyecto nuevo desde un scaffold
+  (`npm create vite`), limpiar el CSS base heredado (`index.css`,
+  `App.css`) antes de construir encima, no cuando algo ya se ve raro -
+  la herencia de CSS puede esconder bugs reales detrás de estilos que
+  "no debería estar aplicando nadie, pero están".
+
 ## Pendiente de validar en la máquina de Seba
 
 - Comportamiento visual del overlay dentro de un Browser Source real de
