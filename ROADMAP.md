@@ -609,6 +609,37 @@ diseño acordado.
          Y ocultando.
       31 tests en el overlay (4 nuevos), 51 en el backend de
       tdf-random-select (6 nuevos del servicio de estadísticas).
+- [x] **Checkpoint HUD-10.1: pulido tras la primera prueba real con
+      datos reales de Supabase.** Funcionó de punta a punta (Seba lo
+      confirmó con AckermanFG/Nocturne real), quedaban ajustes visuales
+      finos comparando contra la referencia real de LoL: fondo blanco
+      sólido en vez del degradé morado-transparente (mismo lenguaje
+      visual que el resto de las cartas), nombre del personaje en
+      mayúsculas y con `overflow: hidden` + `text-overflow: ellipsis`
+      para que nunca se salga del ancho de la carta, "WIN%" como
+      etiqueta chica separada arriba del número grande (antes era un
+      solo texto tipo "61.0%" sin la etiqueta). De paso, el efecto
+      ahora también anima al revés al ocultar (`AnimatePresence` +
+      `exit`) en vez de desaparecer de golpe - antes solo animaba al
+      aparecer.
+      2 bugs reales encontrados y corregidos en `tdf-edeportes` durante
+      la primera carga real de datos:
+      1. La primera corrida se hizo contra la base **local** de Docker
+         en vez de Supabase (mismo error de "local vs Supabase" que ya
+         había pasado con las migraciones) - por eso todo salía "nunca
+         jugado" pese a que el scrape había funcionado bien.
+      2. Al cargar contra Supabase por primera vez (tabla vacía, sin
+         filas previas), el scraper devolvió "RANDOM" duplicado para un
+         jugador - como no había fila previa que `.first()` pudiera
+         encontrar, SQLAlchemy agrupó todos los inserts pendientes en
+         un solo INSERT masivo al hacer commit, y ninguna de las dos
+         filas "RANDOM" se detectó como duplicada hasta que Postgres
+         tiró el error de la constraint única. Arreglado deduplicando
+         por `(cfn_id, character_name)` en Python antes de tocar la
+         base (se queda con la última aparición) - verificado
+         reproduciendo el escenario exacto contra Postgres real.
+         Corrida real final: 495 filas de 512 combinaciones
+         jugador-personaje, 0 errores.
 
 ## Fase 4 — Automatización completa de OBS
 

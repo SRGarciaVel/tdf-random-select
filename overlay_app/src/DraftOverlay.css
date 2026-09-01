@@ -559,16 +559,15 @@
 /* --- Estadisticas de CFN sobre la carta del ultimo baneo (checkpoint
  * HUD-10) - degrade que "tapa" la carta de izquierda a derecha, mismo
  * corte diagonal que el resto del recuadro (hereda el clip-path de
- * .ban-card-inner, que ya clipea a sus hijos). */
+ * .ban-card-inner, que ya clipea a sus hijos). Fondo blanco solido
+ * (no morado transparente) - mismo lenguaje visual que el marco de la
+ * carta y las placas de nombre, a pedido de Seba tras ver la
+ * referencia real de LoL. */
 .ban-card-stats-wipe {
   position: absolute;
   inset: 0;
   z-index: 5;
-  background: linear-gradient(
-    135deg,
-    var(--hud-accent-color),
-    rgba(0, 0, 0, 0.55)
-  );
+  background: #f2f2f2;
 }
 
 .ban-card-stats-content {
@@ -578,19 +577,45 @@
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  padding: 10% 4%;
+  padding: 10% 6%;
   text-align: center;
-  color: #fff;
+  color: #111;
+  box-sizing: border-box;
 }
 
 .ban-card-stats-name {
-  font-size: 0.7rem;
+  font-size: 0.62rem;
   font-weight: 700;
-  text-transform: uppercase;
   letter-spacing: 0.02em;
+  /* nunca se desborda del ancho de la carta - se achica antes de
+   * salirse (a pedido de Seba: "que no se salga de la carta"). */
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ban-card-stats-winrate {
-  font-size: 0.95rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.ban-card-stats-winrate-label {
+  font-size: 0.55rem;
+  font-weight: 600;
+  opacity: 0.7;
+  letter-spacing: 0.03em;
+}
+
+.ban-card-stats-winrate-value {
+  font-size: 1rem;
   font-weight: 800;
+}
+
+.ban-card-stats-never-played {
+  font-size: 0.65rem;
+  font-weight: 600;
+  opacity: 0.75;
 }

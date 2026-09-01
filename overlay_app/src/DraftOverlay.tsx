@@ -162,32 +162,43 @@ function FilledBanCard({
             ⏱
           </div>
         )}
-        {showStats && character && (
-          <motion.div
-            className="ban-card-stats-wipe"
-            data-testid={`ban-card-stats-${character.id}`}
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: 1 }}
-            transition={{ duration: 0.5, ease: "easeInOut" }}
-            style={{ transformOrigin: "left" }}
-          >
+        <AnimatePresence>
+          {showStats && character && (
             <motion.div
-              className="ban-card-stats-content"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.3, delay: 0.45 }}
+              className="ban-card-stats-wipe"
+              data-testid={`ban-card-stats-${character.id}`}
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              exit={{ scaleX: 0 }}
+              transition={{ duration: 0.5, ease: "easeInOut" }}
+              style={{ transformOrigin: "left" }}
             >
-              <span className="ban-card-stats-name">
-                {character.display_name}
-              </span>
-              <span className="ban-card-stats-winrate">
-                {characterStats.ever_played
-                  ? `${((characterStats.win_rate ?? 0) * 100).toFixed(1)}%`
-                  : "Nunca jugado"}
-              </span>
+              <motion.div
+                className="ban-card-stats-content"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25, delay: 0.35 }}
+              >
+                <span className="ban-card-stats-name">
+                  {character.display_name.toUpperCase()}
+                </span>
+                {characterStats.ever_played ? (
+                  <span className="ban-card-stats-winrate">
+                    <span className="ban-card-stats-winrate-label">WIN%</span>
+                    <span className="ban-card-stats-winrate-value">
+                      {((characterStats.win_rate ?? 0) * 100).toFixed(1)}%
+                    </span>
+                  </span>
+                ) : (
+                  <span className="ban-card-stats-never-played">
+                    Nunca jugado
+                  </span>
+                )}
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
+          )}
+        </AnimatePresence>
       </div>
     </motion.div>
   );
