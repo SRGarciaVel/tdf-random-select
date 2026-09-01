@@ -171,7 +171,6 @@
   gap: 8px;
   color: #f5f5f5;
   font-family: "JetBrains Mono", monospace;
-  padding: 1vh 24px 1.3vh;
   box-sizing: border-box;
   overflow: hidden;
   /* align-self:stretch para que el mazo pueda usar height:100% y quedar
@@ -180,6 +179,17 @@
    * (mismo problema que ya tuvimos con el panel central, ver
    * tasks/lessons.md). */
   align-self: stretch;
+}
+
+/* Sin padding del lado que mira al centro - las cartas tienen que tocar
+ * el panel central sin espacio real entre ellas (checkpoint HUD-9, a
+ * pedido de Seba: "todo va unido de extremo a extremo"). */
+.player-side-left {
+  padding: 1vh 0 1.3vh 24px;
+}
+
+.player-side-right {
+  padding: 1vh 24px 1.3vh 0;
 }
 
 .player-side-left {
@@ -207,11 +217,10 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  /* Proporcion fija del alto disponible (no flex:1 "lo que sobre") -
-   * asi el mazo queda a una altura consistente y centrada respecto al
-   * panel central, en vez de depender de cuanto le "sobre" despues de
-   * la placa de nombre (checkpoint HUD-7.3, a pedido de Seba). */
-  height: 82%;
+  /* 85% del alto del panel central (que ahora mide 88% de la fila) - a
+   * pedido explicito de Seba: "las cartas deben ser solo un 15% mas
+   * chicas que el paralelepipedo central" (checkpoint HUD-9). */
+  height: 74.8%;
   min-height: 0;
   flex: none;
 }
@@ -283,7 +292,7 @@
 
 .ban-card-inner {
   position: absolute;
-  inset: 5% 14%;
+  inset: 2.5% 8%;
   overflow: hidden;
   background: rgba(15, 15, 18, 0.85);
   /* Clip-path en % (no px) - mismo criterio que el retrato del panel
@@ -407,16 +416,30 @@
    * ver el panel gris sin gracia en la prueba real). */
   background: linear-gradient(180deg, var(--hud-panel-bg-color), transparent);
   backdrop-filter: blur(6px);
-  border: 1px solid var(--hud-accent-color);
   box-shadow: 0 0 20px var(--hud-accent-color);
-  border-radius: 6px;
-  padding: clamp(0.4rem, 3vh, 1.2rem) 0.6rem;
+  padding: clamp(0.4rem, 3vh, 1.2rem) 1rem;
   overflow: hidden;
-  /* align-self:stretch en vez de height:80% (que era ambiguo dentro de
-   * una celda de grid con align-items:end en el padre y provocaba que
-   * el panel quedara "flotando" mal posicionado, ver tasks/lessons.md) -
-   * llena exactamente el alto de su columna del grid, sin adivinar. */
-  align-self: stretch;
+  /* Mismo lenguaje visual que las cartas: marco con corte diagonal
+   * paralelo (checkpoint HUD-9, a pedido de Seba - "coherente con las
+   * cartas"). Tiene que ser EL MISMO clip-path que .ban-card (no uno
+   * parecido) para que las diagonales coincidan exacto con la carta
+   * pegada a cada lado. */
+  border: 1px solid var(--hud-accent-color);
+  clip-path: polygon(
+    var(--ban-card-skew) 0,
+    100% 0,
+    calc(100% - var(--ban-card-skew)) 100%,
+    0 100%
+  );
+  /* Ensancha la caja el ancho justo del corte a cada lado (sin esto,
+   * aunque el clip-path sea igual, el borde de la columna del grid no
+   * coincide con el borde real de la carta vecina - ver tasks/lessons.md
+   * para el calculo completo de por que hace falta en ambos lados). */
+  margin-inline: calc(var(--ban-card-skew) * -1);
+  /* Altura fija (no stretch a toda la fila) - referencia para que las
+   * cartas midan 85% de esto (--ban-card-skew arriba, altura aca). */
+  height: 88%;
+  align-self: center;
   box-sizing: border-box;
   min-height: 0;
 }
@@ -474,4 +497,61 @@
 .center-status {
   font-size: 0.75rem;
   opacity: 0.85;
+}
+
+/* --- Linea con estela que recorre el contorno completo (checkpoint
+ * HUD-9) - path calculado en DraftOverlay.tsx a partir de posiciones
+ * reales del DOM (mazo izquierdo + panel central + mazo derecho), asi
+ * se adapta sola a la figura mientras crece con cada baneo. */
+.perimeter-light-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 15;
+}
+
+.perimeter-light-path {
+  fill: none;
+  stroke: var(--hud-accent-color);
+  stroke-width: 3px;
+  stroke-linecap: round;
+  /* pathLength=1 en el <path> normaliza el largo real a 0-1, asi el
+   * dasharray/dashoffset no depende de medir el largo real del trazo
+   * (que cambia con cada baneo). */
+  stroke-dasharray: 0.12 0.88;
+  filter: drop-shadow(0 0 4px var(--hud-accent-color))
+    drop-shadow(0 0 10px var(--hud-accent-color));
+  animation: perimeter-travel 4s linear infinite;
+}
+
+@keyframes perimeter-travel {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -1;
+  }
+}
+
+/* Cuando una carta se acaba de banear, un pulso breve del color de
+ * acento sobre ella - representa que la linea "la abraza" al pasar,
+ * sin tener que desviar literalmente el trazo principal (aproximacion
+ * razonable dada la complejidad de recalcular el recorrido en vivo). */
+.ban-card.just-banned {
+  animation: ban-card-wrap-pulse 0.9s ease-out;
+}
+
+@keyframes ban-card-wrap-pulse {
+  0% {
+    filter: drop-shadow(0 0 0 var(--hud-accent-color));
+  }
+  40% {
+    filter: drop-shadow(0 0 14px var(--hud-accent-color));
+  }
+  100% {
+    filter: drop-shadow(0 0 0 var(--hud-accent-color));
+  }
 }

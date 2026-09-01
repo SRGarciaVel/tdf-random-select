@@ -132,6 +132,45 @@
   timeout resuelto, randomizar, completar) tienen permiso de reemitir el
   estado completo.
 
+## Geometría compuesta con piezas de distinto tamaño: medir el DOM real, no calcular a mano
+
+- Para la línea que recorre el contorno de la figura conectada
+  (checkpoint HUD-9), la tentación inicial era calcular el camino SVG
+  con matemática pura a partir de las variables CSS conocidas (ancho de
+  columnas, `--ban-card-skew`, alturas en %). El problema: las cartas
+  miden 85% del alto del panel central, que a su vez está centrado
+  distinto (`align-self: center` en una fila vs `justify-content:
+  center` adentro de una columna con su propio contenido arriba) - la
+  cantidad de combinaciones de `padding`/`gap`/alineación que afectan
+  la posición final de cada pieza es demasiado grande para confiar en
+  reproducirla exacto sin ver el render real, sobre todo cuando encima
+  la cantidad de cartas (y por lo tanto el ancho real de la fila
+  baneada) cambia dinámicamente con cada baneo.
+- **Decisión**: en vez de matemática a ciegas, medir las posiciones
+  REALES ya renderizadas con `getBoundingClientRect()` sobre refs a los
+  elementos de verdad (`.ban-row-left`, `.center-panel`,
+  `.ban-row-right`), recalculando con `ResizeObserver` cuando cambian
+  de tamaño (nueva carta baneada, resize de ventana). Esto elimina de
+  raíz la necesidad de que el modelo mental de la geometría coincida
+  con el CSS real - si el CSS cambia mañana, la línea se sigue
+  ajustando sola sin tocar el cálculo del camino.
+- **Costo del enfoque**: `ResizeObserver` no existe en jsdom (entorno
+  de test) - hay que guardarlo con `typeof ResizeObserver === "undefined"`
+  y igual llamar a la medición una vez al montar, para no romper los
+  tests ni perder la primera medición en navegadores reales.
+- **Qué SÍ se puede testear de verdad**: la función que arma el string
+  del `path` SVG a partir de cajas YA medidas (`buildPerimeterPath`) es
+  pura lógica sin DOM - esa parte se exportó y se probó con casos
+  sintéticos (cajas con coordenadas inventadas). Lo que no se puede
+  testear sin un navegador real es si esas cajas terminan midiendo lo
+  que uno espera - eso queda para la confirmación visual de siempre.
+- **Regla general**: cuando la posición final de un elemento depende de
+  la combinación de varias reglas CSS que interactúan entre sí (grid +
+  flex anidado + alineaciones distintas por pieza), y hace falta esa
+  posición para algo que el CSS no puede expresar solo (como el `path`
+  de un SVG), medir el DOM real vía refs es más robusto que reconstruir
+  el modelo mental del layout en JavaScript.
+
 ## Columnas de grid con `%` medidos a ojo: verificar que sumen 100
 
 - `grid-template-columns: 36% 20.8% 36.2%` - proporciones sacadas

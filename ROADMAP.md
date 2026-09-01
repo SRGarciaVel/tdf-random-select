@@ -526,7 +526,43 @@ diseño acordado.
       alcance de este checkpoint (a pedido de Seba, se trabaja después):
       el efecto de "refresco" al banear (degradé de arriba hacia abajo)
       y el panel de estadísticas por CFN con toggle manual del staff.
-- [ ] **Checkpoint HUD-9 (pendiente): efecto de refresco al banear +
+- [x] **Checkpoint HUD-9: figura conectada de extremo a extremo + línea
+      con estela recorriendo el contorno completo.** Tres piezas:
+      1. Margen blanco de las cartas achicado (`5% 14%` → `2.5% 8%`,
+         se ve más el retrato).
+      2. Panel central rediseñado con el **mismo `clip-path` exacto**
+         que las cartas (no uno parecido — tiene que ser idéntico para
+         que las diagonales coincidan), ensanchado con
+         `margin-inline: calc(var(--ban-card-skew) * -1)` para que sus
+         bordes se alineen con la carta pegada de cada lado. Sin
+         padding en el costado de `.player-side` que mira al centro,
+         para que no quede espacio real entre cartas y panel. Cartas al
+         74.8% de alto (85% de 88%, la proporción exacta pedida por
+         Seba: "las cartas deben ser un 15% más chicas que el
+         paralelepípedo central").
+      3. **Línea con estela recorriendo el contorno completo (360°)**
+         de la figura conectada (mazo izquierdo + panel central + mazo
+         derecho), en bucle constante. Implementada con SVG, **midiendo
+         posiciones reales del DOM** (`getBoundingClientRect` +
+         `ResizeObserver`) en vez de calcular la geometría a mano — las
+         cartas y el panel central tienen alturas distintas (85%/88%),
+         y confiar en matemática pura sin ver el render real era
+         demasiado riesgo de que no coincidiera. `pathLength={1}` en el
+         `<path>` normaliza el largo real a 0-1, así el
+         `stroke-dasharray`/`dashoffset` animado no depende de medir el
+         largo exacto del trazo (que cambia con cada baneo confirmado).
+         Color de la línea = `var(--hud-accent-color)`, ya heredado y
+         configurable desde "Transmisión" (sin prop nueva). Cuando una
+         carta se acaba de banear, un pulso de brillo de 0.9s la
+         resalta — aproximación razonable a "la línea la abraza al
+         pasar" sin la complejidad de desviar literalmente el trazo
+         principal en vivo (que competiría además con el vuelo de
+         `layoutId` que ya existe para ese mismo evento). 5 tests
+         nuevos probando de verdad la lógica de construcción del
+         contorno (`buildPerimeterPath`, exportada para poder probarla
+         sin necesitar layout real de navegador, que jsdom no calcula) -
+         27 tests en total.
+- [ ] **Checkpoint HUD-10 (pendiente): efecto de refresco al banear +
       panel de estadísticas CFN.** Al confirmarse un baneo, un efecto
       de "refresco" en degradé de arriba hacia abajo sobre la carta; el
       personaje desaparece y, en vez de un timer fijo, el staff puede
@@ -534,7 +570,7 @@ diseño acordado.
       estadísticas de ese jugador con ese personaje (usa el CFN ID que
       ya se carga al inscribir jugadores, hoy sin uso en el flujo del
       draft). Discutido y explícitamente pospuesto hasta terminar el
-      diseño visual de las cartas (HUD-8).
+      diseño visual de las cartas (HUD-8/HUD-9).
 
 ## Fase 4 — Automatización completa de OBS
 

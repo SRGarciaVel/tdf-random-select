@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type {
   BanRecord,
   BroadcastSettings,
@@ -101,9 +101,18 @@ function DiagonalPlate({
 function FilledBanCard({ ban, roster }: { ban: BanRecord; roster: RosterMap }) {
   const character = ban.character_id ? roster[ban.character_id] : null;
 
+  // Esta carta se acaba de banear (recien montada) - el pulso dura 0.9s
+  // y despues se apaga solo, simulando que la linea del perimetro "la
+  // abraza" una vez al pasar (checkpoint HUD-9, ver ROADMAP.md).
+  const [justBanned, setJustBanned] = useState(true);
+  useEffect(() => {
+    const timeout = setTimeout(() => setJustBanned(false), 900);
+    return () => clearTimeout(timeout);
+  }, []);
+
   return (
     <motion.div
-      className="ban-card filled"
+      className={`ban-card filled${justBanned ? " just-banned" : ""}`}
       data-testid={character ? `ban-card-${character.id}` : undefined}
       initial={{ scale: 1, opacity: 1 }}
       animate={{ scale: [1, 1.08, 1], opacity: 1 }}
@@ -183,6 +192,7 @@ function BanCardStack({
   roster,
   isActive,
   deadlineMs,
+  rowRef,
 }: {
   side: "left" | "right";
   bans: BanRecord[];
@@ -190,6 +200,7 @@ function BanCardStack({
   roster: RosterMap;
   isActive: boolean;
   deadlineMs: number | null;
+  rowRef?: React.RefObject<HTMLDivElement | null>;
 }) {
   const remainingCount = Math.max(0, bansPerPlayer - bans.length);
   const emptyIndices = Array.from({ length: remainingCount }, (_, i) => i);
@@ -198,8 +209,11 @@ function BanCardStack({
   // pegado al centro, no al nombre).
   const orderedFilledBans = side === "left" ? [...bans].reverse() : bans;
 
+  // rowRef mide la fila de baneadas real - PerimeterLight (checkpoint
+  // HUD-9) la usa para trazar el contorno de la figura conectada, que
+  // solo incluye lo YA baneado, no el mazo compacto de pendientes.
   const filledRow = bans.length > 0 && (
-    <div className={`ban-row ban-row-${side}`}>
+    <div className={`ban-row ban-row-${side}`} ref={rowRef}>
       {orderedFilledBans.map((ban, i) => (
         <FilledBanCard
           key={ban.character_id ?? `skip-${i}`}
@@ -296,6 +310,7 @@ function PlayerSide({
   isActive,
   deadlineMs,
   showsInDramaticPanel,
+  rowRef,
 }: {
   side: "left" | "right";
   player: PlayerInfo;
@@ -306,6 +321,7 @@ function PlayerSide({
   isActive: boolean;
   deadlineMs: number | null;
   showsInDramaticPanel: boolean;
+  rowRef?: React.RefObject<HTMLDivElement | null>;
 }) {
   // El mazo recien "nace" (se reparte desde el centro) cuando arranca el
   // baneo - antes de eso (SETUP) no hay nada que mostrar todavia.
@@ -328,18 +344,134 @@ function PlayerSide({
           roster={roster}
           isActive={isActive}
           deadlineMs={deadlineMs}
+          rowRef={rowRef}
         />
       )}
     </div>
   );
 }
 
+// Linea con estela que recorre el contorno completo (360°) de la figura
+// conectada (mazo izquierdo + panel central + mazo derecho) - checkpoint
+// HUD-9, a pedido de Seba. Mide posiciones REALES del DOM (no matematica
+// pura) porque las cartas y el panel central tienen alturas distintas
+// (85%/88%) y calcularlo a mano sin ver el render real es demasiado
+// arriesgado - mejor que se ajuste sola a donde este todo de verdad,
+// incluida la cantidad de cartas ya baneadas (crece con cada baneo).
+export type PerimeterBox = {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+};
+
+function measureRelativeTo(
+  el: HTMLElement,
+  containerRect: DOMRect,
+): PerimeterBox {
+  const rect = el.getBoundingClientRect();
+  return {
+    left: rect.left - containerRect.left,
+    right: rect.right - containerRect.left,
+    top: rect.top - containerRect.top,
+    bottom: rect.bottom - containerRect.top,
+  };
+}
+
+// Conecta los bordes de arriba y de abajo de cada caja con una diagonal
+// hacia la siguiente en vez de un escalon recto - da una silueta mas
+// fluida para que viaje la luz, y funciona con 1, 2 o 3 cajas (por si
+// todavia no hay cartas baneadas de un lado, o estamos en SETUP).
+export function buildPerimeterPath(
+  boxes: PerimeterBox[],
+  skew: number,
+): string {
+  if (boxes.length === 0) return "";
+  const first = boxes[0];
+  const last = boxes[boxes.length - 1];
+
+  const segments: string[] = [`M ${first.left} ${first.bottom}`];
+  segments.push(`L ${first.left + skew} ${first.top}`);
+  boxes.forEach((box, i) => {
+    segments.push(`L ${box.right} ${box.top}`);
+    if (i < boxes.length - 1) {
+      const next = boxes[i + 1];
+      segments.push(`L ${next.left + skew} ${next.top}`);
+    }
+  });
+  segments.push(`L ${last.right - skew} ${last.bottom}`);
+  for (let i = boxes.length - 1; i >= 0; i--) {
+    const box = boxes[i];
+    segments.push(`L ${box.left} ${box.bottom}`);
+    if (i > 0) {
+      const prev = boxes[i - 1];
+      segments.push(`L ${prev.right - skew} ${prev.bottom}`);
+    }
+  }
+  segments.push("Z");
+  return segments.join(" ");
+}
+
+function PerimeterLight({
+  containerRef,
+  boxRefs,
+  skewPx,
+}: {
+  containerRef: React.RefObject<HTMLElement | null>;
+  boxRefs: React.RefObject<HTMLElement | null>[];
+  skewPx: number;
+}) {
+  const [pathD, setPathD] = useState("");
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    function recompute() {
+      const containerEl = containerRef.current;
+      if (!containerEl) return;
+      const containerRect = containerEl.getBoundingClientRect();
+      const boxes = boxRefs
+        .map((ref) => ref.current)
+        .filter((el): el is HTMLElement => el !== null)
+        .map((el) => measureRelativeTo(el, containerRect));
+      setPathD(buildPerimeterPath(boxes, skewPx));
+    }
+
+    recompute();
+    // jsdom (entorno de test) no implementa ResizeObserver - en
+    // navegadores reales (y en OBS) siempre esta disponible.
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(recompute);
+    observer.observe(container);
+    boxRefs.forEach((ref) => {
+      if (ref.current) observer.observe(ref.current);
+    });
+    window.addEventListener("resize", recompute);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", recompute);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+
+  if (!pathD) return null;
+
+  return (
+    <svg className="perimeter-light-svg" data-testid="perimeter-light">
+      <path d={pathD} pathLength={1} className="perimeter-light-path" />
+    </svg>
+  );
+}
+
 function CenterPanel({
   broadcastSettings,
   matchState,
+  panelRef,
 }: {
   broadcastSettings: BroadcastSettings | null;
   matchState: MatchState;
+  panelRef?: React.RefObject<HTMLDivElement | null>;
 }) {
   const label =
     broadcastSettings?.tournament_label?.trim() ||
@@ -347,7 +479,7 @@ function CenterPanel({
     "";
 
   return (
-    <div className="center-panel">
+    <div className="center-panel" ref={panelRef}>
       <div className="center-panel-brand">
         {broadcastSettings?.logo_url && (
           <img
@@ -376,6 +508,14 @@ export default function DraftOverlay({
   broadcastSettings,
   candidatePreview = null,
 }: DraftOverlayProps) {
+  // Refs para PerimeterLight (checkpoint HUD-9) - van antes del return
+  // temprano de abajo porque los hooks de React no pueden ser
+  // condicionales.
+  const hudBottomBarRef = useRef<HTMLDivElement>(null);
+  const leftBanRowRef = useRef<HTMLDivElement>(null);
+  const centerPanelRef = useRef<HTMLDivElement>(null);
+  const rightBanRowRef = useRef<HTMLDivElement>(null);
+
   if (matchState.match_id === null) {
     return (
       <div className="overlay-root idle">
@@ -452,7 +592,12 @@ export default function DraftOverlay({
         )}
       </AnimatePresence>
 
-      <div className="hud-bottom-bar">
+      <div className="hud-bottom-bar" ref={hudBottomBarRef}>
+        <PerimeterLight
+          containerRef={hudBottomBarRef}
+          boxRefs={[leftBanRowRef, centerPanelRef, rightBanRowRef]}
+          skewPx={14}
+        />
         {matchState.player_a && (
           <PlayerSide
             side="left"
@@ -469,12 +614,14 @@ export default function DraftOverlay({
             }
             deadlineMs={matchState.turn_deadline_ms ?? null}
             showsInDramaticPanel={leftDramaticCharacter !== null}
+            rowRef={leftBanRowRef}
           />
         )}
 
         <CenterPanel
           broadcastSettings={broadcastSettings}
           matchState={matchState}
+          panelRef={centerPanelRef}
         />
 
         {matchState.player_b && (
@@ -493,6 +640,7 @@ export default function DraftOverlay({
             }
             deadlineMs={matchState.turn_deadline_ms ?? null}
             showsInDramaticPanel={rightDramaticCharacter !== null}
+            rowRef={rightBanRowRef}
           />
         )}
       </div>
