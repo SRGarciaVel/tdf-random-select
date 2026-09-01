@@ -126,7 +126,15 @@
   height: var(--hud-bottom-bar-height);
   z-index: 10;
   display: grid;
-  grid-template-columns: 36% 20.8% 36.2%;
+  /* fr en vez de %: las proporciones 36/20.8/36.2 vienen de una medicion
+   * a ojo sobre una captura de referencia de LCK y sumaban 93%, no 100
+   * (bug real - el grid no reparte solo el 7% sobrante, todo el layout
+   * quedaba corrido a la izquierda, confirmado por Seba con lineas de
+   * referencia sobre el centro real de la pantalla). Con fr, el
+   * navegador reparte el 100% del ancho manteniendo la misma
+   * proporcion relativa entre columnas, sin que importe si los numeros
+   * originales suman justo 100 o no. */
+  grid-template-columns: 36fr 20.8fr 36.2fr;
   /* Fila explicita a 100% del contenedor - sin esto, un grid sin
    * grid-template-rows deja que la fila CREZCA para acomodar el
    * contenido mas alto (ej. el panel central con VS + pie), y como el

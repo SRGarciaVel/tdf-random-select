@@ -480,6 +480,24 @@ diseño acordado.
       verticalmente con `justify-content: center` — mismo criterio de
       "proporción fija en vez de espacio sobrante" que ya usa el panel
       central.
+- [x] **Checkpoint HUD-7.4: columnas del grid no sumaban 100% (bug real,
+      no de detalle).** Seba dibujó líneas de referencia sobre el
+      centro real del lienzo en una captura y confirmó que el "VS" NO
+      estaba centrado de verdad, corrido hacia la izquierda — y que la
+      placa de CHUBI (lado derecho) no llegaba hasta el borde real de
+      la pantalla. Causa encontrada: `grid-template-columns: 36% 20.8%
+      36.2%` — esos números (medidos a ojo por Seba con ayuda de
+      ChatGPT sobre una captura de referencia de LCK) suman **93%, no
+      100%**. Un grid no reparte solo el porcentaje que falta; el 7%
+      sobrante queda vacío a la derecha, corriendo las tres columnas
+      completas (VS incluido) hacia la izquierda. Arreglado
+      cambiando de `%` a `fr` (`36fr 20.8fr 36.2fr`) - las unidades
+      `fr` reparten el 100% del ancho disponible manteniendo la misma
+      proporción relativa entre columnas, sin importar si los números
+      originales suman justo 100 o no. Esto también explica por qué
+      HUD-7.3 (centrado del mazo) no alcanzaba: el mazo podía estar
+      bien centrado *dentro de su columna*, pero la columna entera
+      estaba mal ubicada en la pantalla.
 
 ## Fase 4 — Automatización completa de OBS
 

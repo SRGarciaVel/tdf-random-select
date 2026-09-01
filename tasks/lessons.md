@@ -132,6 +132,32 @@
   timeout resuelto, randomizar, completar) tienen permiso de reemitir el
   estado completo.
 
+## Columnas de grid con `%` medidos a ojo: verificar que sumen 100
+
+- `grid-template-columns: 36% 20.8% 36.2%` - proporciones sacadas
+  midiendo a ojo (con ayuda de ChatGPT) sobre una captura de referencia
+  de un HUD de LoL. Nunca se verificó que sumaran 100: en realidad
+  suman 93%. Un grid CSS no reparte el porcentaje que falta - ese 7%
+  sobrante queda como espacio vacío al final, corriendo TODAS las
+  columnas (el layout completo) hacia el otro extremo. El síntoma no
+  fue "una columna angosta" sino algo más engañoso: todo el conjunto se
+  veía razonablemente bien armado *entre sí*, pero desplazado como
+  bloque respecto al centro real de la pantalla - fácil de no notar sin
+  una referencia externa (Seba lo confirmó recién dibujando líneas
+  sobre el centro real de una captura).
+- **Arreglo mecánico**: cambiar de `%` a `fr` en `grid-template-columns`
+  cuando las proporciones vienen de una medición externa (no de un
+  cálculo propio que garantice sumar 100). Las unidades `fr` reparten
+  el 100% del espacio disponible manteniendo la proporción relativa
+  entre columnas, sin importar si los números de origen suman justo
+  100 - conceptualmente son "partes de un total", no porcentajes
+  literales, así que no pueden desalinear el layout aunque el número
+  de referencia esté mal.
+- **Regla general**: cualquier proporción medida a ojo sobre una imagen
+  de referencia (no calculada) es sospechosa de no sumar exactamente
+  100 - o se verifica la suma antes de usarla como `%`, o directamente
+  se usa `fr`, que no tiene ese problema por diseño.
+
 ## `display:grid` sin `grid-template-rows` deja crecer la fila con el contenido
 
 - `.hud-bottom-bar` tenía `height: 35.4vh` en el CONTENEDOR, pero nunca
