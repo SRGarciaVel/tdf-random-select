@@ -149,6 +149,7 @@
 .player-side {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 8px;
   color: #f5f5f5;
   font-family: "JetBrains Mono", monospace;
@@ -186,11 +187,15 @@
 
 .ban-card-stack {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 10px;
-  height: 100%;
+  /* Proporcion fija del alto disponible (no flex:1 "lo que sobre") -
+   * asi el mazo queda a una altura consistente y centrada respecto al
+   * panel central, en vez de depender de cuanto le "sobre" despues de
+   * la placa de nombre (checkpoint HUD-7.3, a pedido de Seba). */
+  height: 82%;
   min-height: 0;
-  flex: 1;
+  flex: none;
 }
 
 .ban-row {

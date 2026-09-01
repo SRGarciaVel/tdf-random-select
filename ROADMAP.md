@@ -464,6 +464,22 @@ diseño acordado.
       panel dramático de ese lado ya está mostrando el nombre. 22 tests
       (subieron de 21): confirmando que el nombre no se duplica cuando
       el panel dramático está activo.
+- [x] **Checkpoint HUD-7.3: mazo de baneos centrado respecto al panel
+      central.** Confirmado con captura real que HUD-7.2 arregló los
+      tres síntomas (VS, pie de estado, 3ª carta ya visibles). Quedaba
+      un detalle de pulido: el mazo de cartas no quedaba a la misma
+      altura visual que el panel central. Causa: el mazo usaba
+      `flex: 1` ("ocupá lo que sobre" después de la placa de nombre),
+      mientras que el panel central distribuye su contenido con
+      `justify-content: space-between` en una proporción fija — como la
+      placa de nombre es más alta que el renglón de marca del panel
+      central, el mazo terminaba con menos aire disponible y no
+      quedaba alineado. Arreglado: el mazo ahora usa una proporción
+      fija del alto disponible (`height: 82%`, no `flex:1`), y
+      `.player-side` centra el grupo completo (nombre + mazo)
+      verticalmente con `justify-content: center` — mismo criterio de
+      "proporción fija en vez de espacio sobrante" que ya usa el panel
+      central.
 
 ## Fase 4 — Automatización completa de OBS
 
