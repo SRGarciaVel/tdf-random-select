@@ -173,6 +173,28 @@ describe("DraftOverlay (HUD)", () => {
     expect(panel).toHaveTextContent("Sirxtias");
   });
 
+  it("no duplica el nombre del jugador cuando el panel dramatico ya lo muestra", () => {
+    const state: MatchState = {
+      ...baseState,
+      status: "BANNING",
+      current_turn_player_id: playerA.id,
+    };
+    render(
+      <DraftOverlay
+        matchState={state}
+        roster={roster}
+        broadcastSettings={defaultBroadcastSettings}
+        candidatePreview={{ character_id: "ryu", player_id: playerA.id }}
+      />,
+    );
+    // "Sirxtias" solo debe aparecer UNA vez (dentro del panel dramatico),
+    // no tambien como placa suelta en la franja compacta.
+    expect(screen.getAllByText("Sirxtias")).toHaveLength(1);
+    // Drachen no tiene panel dramatico activo - su placa en la franja
+    // compacta si debe estar.
+    expect(screen.getAllByText("Drachen")).toHaveLength(1);
+  });
+
   it("un baneo real llena el slot con el retrato y el tajo", () => {
     const state: MatchState = {
       ...baseState,

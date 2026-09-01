@@ -290,6 +290,7 @@ function PlayerSide({
   roster,
   isActive,
   deadlineMs,
+  showsInDramaticPanel,
 }: {
   side: "left" | "right";
   player: PlayerInfo;
@@ -299,6 +300,7 @@ function PlayerSide({
   roster: RosterMap;
   isActive: boolean;
   deadlineMs: number | null;
+  showsInDramaticPanel: boolean;
 }) {
   // El mazo recien "nace" (se reparte desde el centro) cuando arranca el
   // baneo - antes de eso (SETUP) no hay nada que mostrar todavia.
@@ -306,7 +308,13 @@ function PlayerSide({
 
   return (
     <div className={`player-side player-side-${side}`}>
-      <DiagonalPlate side={side} text={player.display_name} size="small" />
+      {/* Si el panel dramatico ya esta mostrando este nombre (apilado
+       * bajo el personaje), no lo repetimos aca - se veia como un
+       * nombre duplicado (checkpoint HUD-7.2, a pedido de Seba tras ver
+       * el HUD real). */}
+      {!showsInDramaticPanel && (
+        <DiagonalPlate side={side} text={player.display_name} size="small" />
+      )}
       {showStack && (
         <BanCardStack
           side={side}
@@ -455,6 +463,7 @@ export default function DraftOverlay({
               matchState.current_turn_player_id === matchState.player_a.id
             }
             deadlineMs={matchState.turn_deadline_ms ?? null}
+            showsInDramaticPanel={leftDramaticCharacter !== null}
           />
         )}
 
@@ -478,6 +487,7 @@ export default function DraftOverlay({
               matchState.current_turn_player_id === matchState.player_b.id
             }
             deadlineMs={matchState.turn_deadline_ms ?? null}
+            showsInDramaticPanel={rightDramaticCharacter !== null}
           />
         )}
       </div>

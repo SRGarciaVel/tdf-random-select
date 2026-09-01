@@ -437,6 +437,33 @@ diseño acordado.
       redundante metido en el medio — arreglado con `align-self`
       explícito en la placa. Tamaños subidos a pedido de Seba: nombre
       del jugador +40%, nombre del torneo +30%.
+- [x] **Checkpoint HUD-7.2: bug real de grid encontrado (confirmado en
+      OBS real, no era la ventana del navegador).** HUD-7.1 asumió que
+      el problema era la altura de la pestaña del navegador - Seba lo
+      probó directo en el Browser Source de OBS y seguía exactamente
+      igual, lo cual descartó esa hipótesis. Diagnóstico correcto:
+      `.hud-bottom-bar` es un `display:grid` **sin `grid-template-rows`
+      explícito** - sin eso, la fila implícita del grid CRECE para
+      acomodar el contenido más alto de cualquier columna (el panel
+      central, con el VS y el pie de estado, era más alto que el
+      presupuesto de `35.4vh`). Como el contenedor está anclado al
+      fondo de un lienzo de altura fija (`position:fixed; inset:0`),
+      lo que "crece" de más no se corta con un borde visible - termina
+      literalmente por debajo del borde inferior del lienzo, sin más
+      canvas donde dibujarse. Eso explica los tres síntomas a la vez
+      (VS invisible, pie de estado invisible, 3ª carta de baneo
+      invisible) con una sola causa. Arreglado con
+      `grid-template-rows: 100%` explícito, más `overflow: hidden`
+      como red de seguridad en `.center-panel` y `.player-side` por si
+      algo igual no entra (mejor que se recorte a que desaparezca sin
+      explicación). Aparte, el nombre "duplicado" que seguía viéndose
+      no era un bug de posición sino de diseño: cuando el panel
+      dramático ya muestra el nombre del jugador (apilado bajo el
+      personaje), la franja compacta mostraba el mismo nombre de nuevo
+      — ahora se oculta la placa propia de la franja compacta cuando el
+      panel dramático de ese lado ya está mostrando el nombre. 22 tests
+      (subieron de 21): confirmando que el nombre no se duplica cuando
+      el panel dramático está activo.
 
 ## Fase 4 — Automatización completa de OBS
 

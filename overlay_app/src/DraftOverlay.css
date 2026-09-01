@@ -127,6 +127,15 @@
   z-index: 10;
   display: grid;
   grid-template-columns: 36% 20.8% 36.2%;
+  /* Fila explicita a 100% del contenedor - sin esto, un grid sin
+   * grid-template-rows deja que la fila CREZCA para acomodar el
+   * contenido mas alto (ej. el panel central con VS + pie), y como el
+   * contenedor esta anclado al fondo de una pantalla de altura fija, lo
+   * que "crece" de mas termina literalmente por debajo del borde
+   * inferior del lienzo - invisible, no hay mas canvas ahi (bug real
+   * encontrado por Seba: el VS y la 3ra carta de baneo desaparecian por
+   * este mismo motivo, ver tasks/lessons.md). */
+  grid-template-rows: 100%;
   align-items: end;
   /* padding en vh, no px fijos - si la ventana real es mas baja que
    * 1080p (pestana normal del navegador en vez del canvas exacto de
@@ -145,6 +154,7 @@
   font-family: "JetBrains Mono", monospace;
   padding: 1vh 24px 1.3vh;
   box-sizing: border-box;
+  overflow: hidden;
   /* align-self:stretch para que el mazo pueda usar height:100% y quedar
    * a la misma altura que el panel central (checkpoint HUD-6, ver
    * ROADMAP.md) - sin esto el porcentaje no tiene contra que resolverse
@@ -340,6 +350,7 @@
   box-shadow: 0 0 20px var(--hud-accent-color);
   border-radius: 6px;
   padding: clamp(0.4rem, 3vh, 1.2rem) 0.6rem;
+  overflow: hidden;
   /* align-self:stretch en vez de height:80% (que era ambiguo dentro de
    * una celda de grid con align-items:end en el padre y provocaba que
    * el panel quedara "flotando" mal posicionado, ver tasks/lessons.md) -

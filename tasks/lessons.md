@@ -132,6 +132,37 @@
   timeout resuelto, randomizar, completar) tienen permiso de reemitir el
   estado completo.
 
+## `display:grid` sin `grid-template-rows` deja crecer la fila con el contenido
+
+- `.hud-bottom-bar` tenía `height: 35.4vh` en el CONTENEDOR, pero nunca
+  se le puso `grid-template-rows` explícito - un grid sin eso deja que
+  la fila implícita se dimensione por el contenido más alto de
+  cualquier columna, ignorando la altura declarada del contenedor. El
+  panel central (VS + pie de estado) resultó más alto que el
+  presupuesto real, la fila creció para acomodarlo, y como el
+  contenedor está anclado al fondo de un lienzo de altura fija
+  (`position:fixed; inset:0`), lo que "creció" de más no se corta con
+  un borde visible - queda literalmente por debajo del borde inferior
+  del lienzo, sin más canvas donde renderizarse. Tres síntomas
+  aparentemente distintos (VS invisible, pie de estado invisible, 3ª
+  carta de baneo invisible) tenían esta única causa.
+- **Cómo se descartó la hipótesis equivocada primero**: al ver el
+  problema por primera vez, la sospecha inicial fue "la ventana del
+  navegador es más baja que 1080px" (ver la lección anterior sobre
+  `vh` + píxeles fijos) - una hipótesis razonable pero incorrecta.
+  Confirmarla o descartarla costó UN mensaje pidiendo que Seba probara
+  directo en OBS (no en una pestaña de navegador) antes de tocar más
+  CSS a ciegas - valió la pena, evitó seguir iterando sobre un
+  diagnóstico equivocado.
+- **Regla general**: cualquier `display:grid` con una altura de
+  contenedor fija en la que el contenido de las columnas pueda variar,
+  necesita `grid-template-rows` explícito (`100%`, `1fr`, etc.) - sin
+  eso, el grid prioriza mostrar el contenido completo por sobre
+  respetar la altura declarada, y en un contenedor `position:fixed`
+  anclado al fondo de la pantalla, ese overflow es invisible en vez de
+  visible, lo cual lo hace mucho más difícil de diagnosticar a simple
+  vista que un overflow normal.
+
 ## Mezclar `vh` con píxeles fijos rompe en ventanas mas bajas que 1080p
 
 - La franja del HUD mide su altura en `vh` (35.4vh, pensado para
