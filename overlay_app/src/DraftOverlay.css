@@ -555,3 +555,42 @@
     filter: drop-shadow(0 0 0 var(--hud-accent-color));
   }
 }
+
+/* --- Estadisticas de CFN sobre la carta del ultimo baneo (checkpoint
+ * HUD-10) - degrade que "tapa" la carta de izquierda a derecha, mismo
+ * corte diagonal que el resto del recuadro (hereda el clip-path de
+ * .ban-card-inner, que ya clipea a sus hijos). */
+.ban-card-stats-wipe {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: linear-gradient(
+    135deg,
+    var(--hud-accent-color),
+    rgba(0, 0, 0, 0.55)
+  );
+}
+
+.ban-card-stats-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10% 4%;
+  text-align: center;
+  color: #fff;
+}
+
+.ban-card-stats-name {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.ban-card-stats-winrate {
+  font-size: 0.95rem;
+  font-weight: 800;
+}

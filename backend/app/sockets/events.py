@@ -34,3 +34,14 @@ def handle_ban_candidate_preview(payload: dict) -> None:
     payload: {"character_id": str | None, "player_id": int | None}
     """
     emit("ban_candidate_preview", payload, broadcast=True)
+
+
+@socketio.on("character_stats_update")
+def handle_character_stats_update(payload: dict) -> None:
+    """Reenvía las estadisticas de CFN del ultimo baneo confirmado -
+    activado a mano por el staff con "Mostrar estadisticas" (checkpoint
+    HUD-10, ver ROADMAP.md). payload siempre trae "visible": bool -
+    visible=False esconde las estadisticas en el overlay (vuelve la
+    carta a mostrar el retrato normal).
+    """
+    emit("character_stats_update", payload, broadcast=True)

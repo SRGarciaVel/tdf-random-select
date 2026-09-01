@@ -46,3 +46,15 @@ export interface CandidatePreview {
   character_id: string | null;
   player_id: number | null;
 }
+
+// Espejo del evento Socket.IO "character_stats_update" (checkpoint
+// HUD-10). visible=false esconde las estadisticas - el resto de las
+// claves no importan en ese caso.
+export interface CharacterStatsUpdate {
+  visible: boolean;
+  player_id?: number;
+  character_id?: string;
+  ever_played?: boolean;
+  matches_played?: number | null;
+  win_rate?: number | null;
+}

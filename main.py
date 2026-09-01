@@ -3,15 +3,22 @@ import asyncio
 import sys
 import threading
 
+from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import QApplication
 from qasync import QEventLoop
 
 from backend.app import create_app, socketio
 from backend.app.models import get_engine, get_session_factory, init_db
+from backend.app.services.character_stats_service import warm_up_tdf_edeportes
 from control_panel.main_window import MainWindow
 
 BACKEND_HOST = "localhost"
 BACKEND_PORT = 5001
+# Cada cuanto se hace ping a tdf-edeportes para mantenerlo despierto
+# (checkpoint HUD-10) - Render duerme la capa gratis a los 15 min sin
+# trafico, este intervalo deja margen de sobra sin ser demasiado
+# seguido.
+WARMUP_INTERVAL_MS = 10 * 60 * 1000
 
 
 def _run_backend(session_factory) -> None:
@@ -31,6 +38,12 @@ def _run_backend(session_factory) -> None:
     )
 
 
+def _warm_up_in_background() -> None:
+    # requests.get bloquea hasta 20s (ver character_stats_service.py) -
+    # en un thread aparte para que el ping nunca trabe la UI de Qt.
+    threading.Thread(target=warm_up_tdf_edeportes, daemon=True).start()
+
+
 def main() -> int:
     engine = get_engine()
     init_db(engine)  # idempotente - solo crea tablas que no existen
@@ -47,6 +60,17 @@ def main() -> int:
 
     window = MainWindow(session_factory)
     window.show()
+
+    # Precarga de tdf-edeportes: primera vez ya al arrancar (no esperar
+    # los 10 minutos), despues en bucle - checkpoint HUD-10, a pedido de
+    # Seba: "que cuando se necesite desplegar la informacion las
+    # estadisticas ya esten despiertas". warmup_timer necesita quedar
+    # referenciado mientras la app viva, si no Qt lo recolecta como
+    # basura y deja de sonar.
+    _warm_up_in_background()
+    warmup_timer = QTimer()
+    warmup_timer.timeout.connect(_warm_up_in_background)
+    warmup_timer.start(WARMUP_INTERVAL_MS)
 
     with loop:
         return loop.run_forever()

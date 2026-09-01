@@ -48,3 +48,23 @@ class OverlayBridge:
             )
         except Exception:
             logger.warning("No se pudo empujar el preview al overlay.", exc_info=True)
+
+    def emit_character_stats(self, payload: dict) -> None:
+        """Muestra u oculta las estadisticas de CFN sobre la carta del
+        ultimo baneo confirmado - checkpoint HUD-10, activado a mano por
+        el staff desde "Mostrar estadisticas", nunca automatico.
+
+        payload SIEMPRE es un dict con "visible": bool - nunca None
+        directamente (bug real encontrado: python-socketio no entrega
+        payload=None de forma confiable al cliente del otro lado, el
+        evento se perdia en el viaje - ver tasks/lessons.md). Con
+        visible=False el resto de las claves no importan.
+        """
+        try:
+            if not self._sio.connected:
+                self._sio.connect(BACKEND_URL, wait_timeout=10)
+            self._sio.emit("character_stats_update", payload)
+        except Exception:
+            logger.warning(
+                "No se pudo empujar las estadisticas al overlay.", exc_info=True
+            )

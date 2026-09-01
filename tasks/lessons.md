@@ -1,5 +1,32 @@
 # Lecciones aprendidas — TDF Random Select
 
+## `emit(evento, None)` no se entrega de forma confiable al otro lado
+
+- Para "ocultar estadísticas" (checkpoint HUD-10) la primera versión
+  emitía `emit_character_stats(None)` — la intención era que un
+  `payload=None` significara "esconder". Un test E2E real (backend
+  levantado, socket real, no mockeado) mostró que el evento de "mostrar"
+  llegaba perfecto, pero el de "ocultar" simplemente **no llegaba** — el
+  cliente del otro lado seguía viendo el último dato real, nunca recibía
+  nada nuevo.
+- **Causa probable**: `python-socketio` trata `data=None` en `.emit()`
+  como "sin argumento de datos" en vez de "argumento con valor null" -
+  la forma en que la librería empaqueta el mensaje cuando no hay data
+  puede no coincidir con lo que el handler del otro lado espera recibir
+  como argumento, perdiendo el evento en el camino (o entregándolo con
+  una forma que el callback no dispara correctamente).
+- **Arreglo**: nunca depender de `None`/`null` como valor semántico
+  especial en un payload de Socket.IO - usar siempre un dict presente
+  con un campo explícito (`{"visible": false}` en vez de `None`). Un
+  dict vacío o con una clave booleana viaja de forma predecible; `None`
+  como el propio payload, no.
+- **Regla general**: cualquier "estado apagado" que viaje por Socket.IO
+  se modela como un dict con un flag explícito, nunca como ausencia de
+  datos (`None`/`undefined`) - la ausencia de datos es ambigua entre
+  "el evento no llegó" y "el evento llegó diciendo que no hay nada", y
+  un test que solo revisa "algo llegó" no distingue esos dos casos sin
+  mirar el contenido con cuidado.
+
 ## Walking skeleton (armado inicial)
 
 - **Flask no mapea `/` a `index.html` solo por configurar `static_folder`.**

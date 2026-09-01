@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import datetime as dt
+import threading
 
-from PyQt6.QtCore import QTimer
+from PyQt6.QtCore import QTimer, pyqtSignal
 from PyQt6.QtWidgets import (
     QComboBox,
     QGridLayout,
@@ -18,6 +19,10 @@ from sqlalchemy.orm import sessionmaker
 
 from backend.app.data.sf6_roster import SF6_ROSTER
 from backend.app.models import Match
+from backend.app.services.character_stats_service import (
+    CharacterStatsUnavailable,
+    fetch_character_stats,
+)
 from backend.app.services.character_tag_service import list_character_tags
 from backend.app.services.draft_service import (
     DraftError,
@@ -42,6 +47,12 @@ class BanningScreen(QWidget):
     la Fase 4 junto con la pantalla real de configuracion de OBS.
     """
 
+    # Se emite desde un thread de fondo (fetch_character_stats bloquea
+    # hasta 6s por la red) - Qt lo entrega en el thread de la UI solo,
+    # asi la consulta a tdf-edeportes nunca traba el panel (checkpoint
+    # HUD-10, ver ROADMAP.md).
+    _character_stats_fetched = pyqtSignal(object)
+
     def __init__(
         self, session_factory: sessionmaker, timer_ms: int = BAN_TIMER_MS
     ) -> None:
@@ -61,6 +72,10 @@ class BanningScreen(QWidget):
         # clic selecciona, "Bloquear" confirma - evita baneos accidentales
         # y le da tiempo al overlay a mostrar el preview grande).
         self._selected_character_id: str | None = None
+        # Estadisticas de CFN sobre el ultimo baneo confirmado
+        # (checkpoint HUD-10) - toggle manual, nunca automatico.
+        self._stats_visible = False
+        self._character_stats_fetched.connect(self._on_character_stats_fetched)
 
         self._match_selector = QComboBox()
         self._match_selector.currentIndexChanged.connect(self._on_match_selected)
@@ -101,6 +116,13 @@ class BanningScreen(QWidget):
         self._complete_button = QPushButton("Completar reveal")
         self._complete_button.clicked.connect(self._on_complete_clicked)
 
+        # Estadisticas de CFN del ultimo baneo confirmado (checkpoint
+        # HUD-10) - deshabilitado hasta que haya al menos un baneo real.
+        self._show_stats_button = QPushButton("Mostrar estadísticas")
+        self._show_stats_button.setEnabled(False)
+        self._show_stats_button.clicked.connect(self._on_toggle_stats_clicked)
+        self._stats_label = QLabel("")
+
         layout = QVBoxLayout()
         layout.addLayout(match_row)
         layout.addLayout(start_row)
@@ -110,6 +132,8 @@ class BanningScreen(QWidget):
         layout.addWidget(self._randomize_button)
         layout.addWidget(self._results_label)
         layout.addWidget(self._complete_button)
+        layout.addWidget(self._show_stats_button)
+        layout.addWidget(self._stats_label)
         self.setLayout(layout)
 
         self._reload_matches()
@@ -239,6 +263,10 @@ class BanningScreen(QWidget):
 
         self._randomize_button.setEnabled(status == "RANDOMIZING")
         self._complete_button.setEnabled(status == "REVEAL")
+        # al menos un baneo real confirmado (no solo turnos saltados) -
+        # checkpoint HUD-10.
+        has_real_ban = any(cid is not None for cid in banned_ids)
+        self._show_stats_button.setEnabled(has_real_ban)
 
         if results:
             lines = []
@@ -304,6 +332,9 @@ class BanningScreen(QWidget):
             QMessageBox.warning(self, "Baneo inválido", str(exc))
             return
         self._selected_character_id = None
+        # el "ultimo baneo confirmado" cambio - cualquier estadistica
+        # mostrada quedo obsoleta (checkpoint HUD-10).
+        self._reset_stats_display()
         self._reload_matches()
 
     def _on_randomize_clicked(self) -> None:
@@ -374,4 +405,105 @@ class BanningScreen(QWidget):
             # que disparo (ej. el staff ya baneo a mano justo antes) - no
             # es un error real, solo se ignora y se refresca el estado.
             pass
+        self._reset_stats_display()
         self._reload_matches()
+
+    def _reset_stats_display(self) -> None:
+        """Vuelve el toggle a su estado apagado y borra las estadisticas
+        del overlay - se llama cada vez que "el ultimo baneo confirmado"
+        cambia, para no dejar datos obsoletos mostrados por accidente
+        (checkpoint HUD-10)."""
+        if self._stats_visible:
+            self._overlay_bridge.emit_character_stats({"visible": False})
+        self._stats_visible = False
+        self._show_stats_button.setText("Mostrar estadísticas")
+        self._stats_label.setText("")
+
+    def _on_toggle_stats_clicked(self) -> None:
+        if self._stats_visible:
+            self._reset_stats_display()
+            return
+
+        if self._match_id is None:
+            return
+        with self._session_factory() as session:
+            match = session.get(Match, self._match_id)
+            if match is None or not match.bans:
+                return
+            last_ban = max(match.bans, key=lambda ban: ban.turn_order)
+            if last_ban.character_id is None:
+                self._stats_label.setText(
+                    "El último turno se saltó - no hay personaje que consultar."
+                )
+                return
+            player = get_player(session, last_ban.banned_by_player_id)
+            character_id = last_ban.character_id
+            player_id = last_ban.banned_by_player_id
+            player_display_name = player.display_name if player else "?"
+            cfn_id = player.cfn_id if player else None
+
+        if not cfn_id:
+            self._stats_label.setText(
+                f"{player_display_name} no tiene CFN ID cargado en Jugadores."
+            )
+            return
+
+        character_display_name = CHARACTER_DISPLAY_NAMES.get(character_id, character_id)
+        self._stats_label.setText("Consultando tdf-edeportes...")
+        self._show_stats_button.setEnabled(False)
+
+        def worker() -> None:
+            try:
+                data = fetch_character_stats(cfn_id, character_display_name)
+                self._character_stats_fetched.emit(
+                    {
+                        "ok": True,
+                        "data": data,
+                        "player_id": player_id,
+                        "player_display_name": player_display_name,
+                        "character_id": character_id,
+                    }
+                )
+            except CharacterStatsUnavailable as exc:
+                self._character_stats_fetched.emit(
+                    {
+                        "ok": False,
+                        "error": str(exc),
+                        "player_display_name": player_display_name,
+                    }
+                )
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _on_character_stats_fetched(self, result: dict) -> None:
+        self._show_stats_button.setEnabled(True)
+        if not result["ok"]:
+            self._stats_label.setText(
+                f"No se pudo consultar tdf-edeportes: {result['error']}"
+            )
+            return
+
+        data = result["data"]
+        player_name = result["player_display_name"]
+        if not data.get("ever_played"):
+            self._stats_label.setText(f"{player_name}: nunca jugó este personaje.")
+        else:
+            win_rate_pct = (data.get("win_rate") or 0) * 100
+            matches_played = data.get("matches_played")
+            self._stats_label.setText(
+                f"{player_name}: {win_rate_pct:.1f}% de victorias "
+                f"({matches_played} partidas totales) - visible en el HUD."
+            )
+
+        self._stats_visible = True
+        self._show_stats_button.setText("Ocultar estadísticas")
+        self._overlay_bridge.emit_character_stats(
+            {
+                "visible": True,
+                "player_id": result["player_id"],
+                "character_id": result["character_id"],
+                "ever_played": data.get("ever_played", False),
+                "matches_played": data.get("matches_played"),
+                "win_rate": data.get("win_rate"),
+            }
+        )

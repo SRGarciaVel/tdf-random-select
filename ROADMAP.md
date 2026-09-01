@@ -562,15 +562,53 @@ diseño acordado.
          contorno (`buildPerimeterPath`, exportada para poder probarla
          sin necesitar layout real de navegador, que jsdom no calcula) -
          27 tests en total.
-- [ ] **Checkpoint HUD-10 (pendiente): efecto de refresco al banear +
-      panel de estadísticas CFN.** Al confirmarse un baneo, un efecto
-      de "refresco" en degradé de arriba hacia abajo sobre la carta; el
-      personaje desaparece y, en vez de un timer fijo, el staff puede
-      **habilitar manualmente desde el panel** que se muestren las
-      estadísticas de ese jugador con ese personaje (usa el CFN ID que
-      ya se carga al inscribir jugadores, hoy sin uso en el flujo del
-      draft). Discutido y explícitamente pospuesto hasta terminar el
-      diseño visual de las cartas (HUD-8/HUD-9).
+- [x] **Checkpoint HUD-10: efecto de refresco al banear + estadísticas
+      de CFN, con toggle manual del staff.** Le da uso real al CFN ID
+      que ya se cargaba al inscribir jugadores (hasta ahora sin uso en
+      el flujo del draft). Cruza dos proyectos:
+      1. **`tdf-edeportes` (otro repo)**: dato nuevo que no existía en
+         ningún lado — win rate TOTAL por personaje (histórico completo,
+         no una ventana de días como `cfn_matches`), de la pestaña
+         `/play` → sub-pestaña "Win Rate" → filtro "Total" de Buckler's
+         Boot Camp. Tabla nueva `cfn_character_stats`, scraper nuevo
+         `get_character_win_rates()`, endpoint público
+         `GET /cfn/players/{cfn_id}/character-stats/{character_name}`
+         (case-insensitive, `ever_played: false` en vez de 404 para
+         "nunca lo jugó"). Selectores **confirmados contra HTML real**
+         que Seba subió (no a ciegas): la sub-pestaña se llama "Win
+         Rate", no "Characters" como se había supuesto, y viene
+         seleccionada por default; el filtro "Total" es un `<select>`
+         nativo, no un botón (`select_option()`, no `click()` — el
+         primer intento tiró justo ese error real en la corrida de
+         Seba). Corrida real: 288 filas de 9 jugadores, 0 errores.
+      2. **`tdf-random-select` (este proyecto)**: `character_stats_service.py`
+         nuevo consume ese endpoint (nunca escribe en `tdf-edeportes`,
+         solo lee). Precarga automática cada 10 min desde `main.py` en
+         background (Render duerme la capa gratis a los 15 min sin
+         tráfico — a pedido de Seba: "que cuando se necesite desplegar
+         la información ya estén despiertas"). Botón "Mostrar
+         estadísticas" en `BanningScreen`, habilitado solo con al
+         menos un baneo real confirmado, consulta en un thread aparte
+         (nunca traba el panel — verificado con un test que haría
+         timeout si se colgara), y le muestra el resultado al staff en
+         el panel además del overlay (a pedido de Seba: "por si quiere
+         mencionarla en stream"). Siempre apunta al **último baneo
+         confirmado** (más simple que dejar elegir carta puntual, según
+         lo acordado). Efecto de refresco: degradé que tapa la carta de
+         **izquierda a derecha** (ajustado durante la conversación —
+         la primera mención había sido "arriba hacia abajo", la
+         referencia final del HUD real de LoL confirmó izquierda a
+         derecha), mostrando nombre del personaje + winrate (o "Nunca
+         jugado").
+      3. **Bug real encontrado y corregido**: mandar `payload=None`
+         para "ocultar" se perdía en el viaje por el socket
+         (python-socketio no lo entrega de forma confiable al cliente
+         del otro lado). Contrato cambiado a un dict siempre presente
+         con `visible: bool` explícito — confirmado con un test E2E
+         real (backend levantado, socket real, no mockeado) mostrando
+         Y ocultando.
+      31 tests en el overlay (4 nuevos), 51 en el backend de
+      tdf-random-select (6 nuevos del servicio de estadísticas).
 
 ## Fase 4 — Automatización completa de OBS
 

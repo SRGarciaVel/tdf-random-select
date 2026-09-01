@@ -195,6 +195,95 @@ describe("DraftOverlay (HUD)", () => {
     expect(screen.getAllByText("Drachen")).toHaveLength(1);
   });
 
+  describe("estadisticas de CFN sobre la carta (checkpoint HUD-10)", () => {
+    const bannedState: MatchState = {
+      ...baseState,
+      status: "BANNING",
+      bans: [
+        {
+          character_id: "ryu",
+          banned_by_player_id: playerA.id,
+          was_timeout: false,
+        },
+      ],
+      current_turn_player_id: playerB.id,
+    };
+
+    it("muestra el efecto de refresco solo en la carta que coincide (jugador + personaje)", () => {
+      render(
+        <DraftOverlay
+          matchState={bannedState}
+          roster={roster}
+          broadcastSettings={defaultBroadcastSettings}
+          characterStats={{
+            visible: true,
+            player_id: playerA.id,
+            character_id: "ryu",
+            ever_played: true,
+            matches_played: 88,
+            win_rate: 0.61,
+          }}
+        />,
+      );
+      expect(screen.getByTestId("ban-card-stats-ryu")).toBeInTheDocument();
+      expect(screen.getByText("61.0%")).toBeInTheDocument();
+    });
+
+    it('muestra "Nunca jugado" cuando ever_played es false', () => {
+      render(
+        <DraftOverlay
+          matchState={bannedState}
+          roster={roster}
+          broadcastSettings={defaultBroadcastSettings}
+          characterStats={{
+            visible: true,
+            player_id: playerA.id,
+            character_id: "ryu",
+            ever_played: false,
+            matches_played: null,
+            win_rate: null,
+          }}
+        />,
+      );
+      expect(screen.getByText("Nunca jugado")).toBeInTheDocument();
+    });
+
+    it("no muestra nada si characterStats no coincide con ninguna carta baneada", () => {
+      render(
+        <DraftOverlay
+          matchState={bannedState}
+          roster={roster}
+          broadcastSettings={defaultBroadcastSettings}
+          characterStats={{
+            visible: true,
+            player_id: playerB.id, // Chubi no baneo nada en este estado
+            character_id: "ryu",
+            ever_played: true,
+            matches_played: 10,
+            win_rate: 0.5,
+          }}
+        />,
+      );
+      expect(
+        screen.queryByTestId("ban-card-stats-ryu"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("no muestra nada cuando characterStats es null", () => {
+      render(
+        <DraftOverlay
+          matchState={bannedState}
+          roster={roster}
+          broadcastSettings={defaultBroadcastSettings}
+          characterStats={null}
+        />,
+      );
+      expect(
+        screen.queryByTestId("ban-card-stats-ryu"),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   it("un baneo real llena el slot con el retrato y el tajo", () => {
     const state: MatchState = {
       ...baseState,

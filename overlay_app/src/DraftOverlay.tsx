@@ -5,6 +5,7 @@ import type {
   BroadcastSettings,
   CandidatePreview,
   CharacterInfo,
+  CharacterStatsUpdate,
   MatchState,
   PlayerInfo,
 } from "./types";
@@ -15,6 +16,7 @@ interface DraftOverlayProps {
   roster: CharacterInfo[];
   broadcastSettings: BroadcastSettings | null;
   candidatePreview?: CandidatePreview | null;
+  characterStats?: CharacterStatsUpdate | null;
 }
 
 type RosterMap = Record<string, CharacterInfo>;
@@ -98,7 +100,15 @@ function DiagonalPlate({
   );
 }
 
-function FilledBanCard({ ban, roster }: { ban: BanRecord; roster: RosterMap }) {
+function FilledBanCard({
+  ban,
+  roster,
+  characterStats,
+}: {
+  ban: BanRecord;
+  roster: RosterMap;
+  characterStats: CharacterStatsUpdate | null;
+}) {
   const character = ban.character_id ? roster[ban.character_id] : null;
 
   // Esta carta se acaba de banear (recien montada) - el pulso dura 0.9s
@@ -109,6 +119,13 @@ function FilledBanCard({ ban, roster }: { ban: BanRecord; roster: RosterMap }) {
     const timeout = setTimeout(() => setJustBanned(false), 900);
     return () => clearTimeout(timeout);
   }, []);
+
+  // El staff activo a mano "Mostrar estadisticas" para ESTA carta
+  // puntual (siempre el ultimo baneo confirmado) - checkpoint HUD-10.
+  const showStats =
+    characterStats !== null &&
+    characterStats.player_id === ban.banned_by_player_id &&
+    characterStats.character_id === ban.character_id;
 
   return (
     <motion.div
@@ -144,6 +161,32 @@ function FilledBanCard({ ban, roster }: { ban: BanRecord; roster: RosterMap }) {
           >
             ⏱
           </div>
+        )}
+        {showStats && character && (
+          <motion.div
+            className="ban-card-stats-wipe"
+            data-testid={`ban-card-stats-${character.id}`}
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ duration: 0.5, ease: "easeInOut" }}
+            style={{ transformOrigin: "left" }}
+          >
+            <motion.div
+              className="ban-card-stats-content"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3, delay: 0.45 }}
+            >
+              <span className="ban-card-stats-name">
+                {character.display_name}
+              </span>
+              <span className="ban-card-stats-winrate">
+                {characterStats.ever_played
+                  ? `${((characterStats.win_rate ?? 0) * 100).toFixed(1)}%`
+                  : "Nunca jugado"}
+              </span>
+            </motion.div>
+          </motion.div>
         )}
       </div>
     </motion.div>
@@ -193,6 +236,7 @@ function BanCardStack({
   isActive,
   deadlineMs,
   rowRef,
+  characterStats,
 }: {
   side: "left" | "right";
   bans: BanRecord[];
@@ -201,6 +245,7 @@ function BanCardStack({
   isActive: boolean;
   deadlineMs: number | null;
   rowRef?: React.RefObject<HTMLDivElement | null>;
+  characterStats: CharacterStatsUpdate | null;
 }) {
   const remainingCount = Math.max(0, bansPerPlayer - bans.length);
   const emptyIndices = Array.from({ length: remainingCount }, (_, i) => i);
@@ -219,6 +264,7 @@ function BanCardStack({
           key={ban.character_id ?? `skip-${i}`}
           ban={ban}
           roster={roster}
+          characterStats={characterStats}
         />
       ))}
     </div>
@@ -311,6 +357,7 @@ function PlayerSide({
   deadlineMs,
   showsInDramaticPanel,
   rowRef,
+  characterStats,
 }: {
   side: "left" | "right";
   player: PlayerInfo;
@@ -322,6 +369,7 @@ function PlayerSide({
   deadlineMs: number | null;
   showsInDramaticPanel: boolean;
   rowRef?: React.RefObject<HTMLDivElement | null>;
+  characterStats: CharacterStatsUpdate | null;
 }) {
   // El mazo recien "nace" (se reparte desde el centro) cuando arranca el
   // baneo - antes de eso (SETUP) no hay nada que mostrar todavia.
@@ -345,6 +393,7 @@ function PlayerSide({
           isActive={isActive}
           deadlineMs={deadlineMs}
           rowRef={rowRef}
+          characterStats={characterStats}
         />
       )}
     </div>
@@ -507,6 +556,7 @@ export default function DraftOverlay({
   roster,
   broadcastSettings,
   candidatePreview = null,
+  characterStats = null,
 }: DraftOverlayProps) {
   // Refs para PerimeterLight (checkpoint HUD-9) - van antes del return
   // temprano de abajo porque los hooks de React no pueden ser
@@ -615,6 +665,7 @@ export default function DraftOverlay({
             deadlineMs={matchState.turn_deadline_ms ?? null}
             showsInDramaticPanel={leftDramaticCharacter !== null}
             rowRef={leftBanRowRef}
+            characterStats={characterStats}
           />
         )}
 
@@ -641,6 +692,7 @@ export default function DraftOverlay({
             deadlineMs={matchState.turn_deadline_ms ?? null}
             showsInDramaticPanel={rightDramaticCharacter !== null}
             rowRef={rightBanRowRef}
+            characterStats={characterStats}
           />
         )}
       </div>
