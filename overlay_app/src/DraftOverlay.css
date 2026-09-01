@@ -457,7 +457,7 @@
 }
 
 .center-label {
-  font-size: 0.78rem; /* 0.6rem + 30%, a pedido de Seba */
+  font-size: 1rem; /* agrandado a pedido de Seba - se veia chico comparado con el resto */
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -465,7 +465,7 @@
 }
 
 .center-vs {
-  font-size: clamp(1.4rem, 7vh, 2.8rem);
+  font-size: clamp(1.6rem, 8vh, 3.4rem);
   font-weight: 800;
   letter-spacing: 0.05em;
   color: #fff;
@@ -495,7 +495,7 @@
 }
 
 .center-status {
-  font-size: 0.75rem;
+  font-size: 0.95rem; /* agrandado a pedido de Seba */
   opacity: 0.85;
 }
 
@@ -584,7 +584,7 @@
 }
 
 .ban-card-stats-name {
-  font-size: 0.62rem;
+  font-size: 0.8rem; /* agrandado a pedido de Seba - se veia chico */
   font-weight: 700;
   letter-spacing: 0.02em;
   /* nunca se desborda del ancho de la carta - se achica antes de
@@ -599,23 +599,23 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
 }
 
 .ban-card-stats-winrate-label {
-  font-size: 0.55rem;
+  font-size: 0.7rem;
   font-weight: 600;
   opacity: 0.7;
   letter-spacing: 0.03em;
 }
 
 .ban-card-stats-winrate-value {
-  font-size: 1rem;
+  font-size: 1.35rem;
   font-weight: 800;
 }
 
 .ban-card-stats-never-played {
-  font-size: 0.65rem;
+  font-size: 0.85rem;
   font-weight: 600;
   opacity: 0.75;
 }

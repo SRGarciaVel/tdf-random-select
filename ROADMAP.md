@@ -640,6 +640,14 @@ diseño acordado.
          reproduciendo el escenario exacto contra Postgres real.
          Corrida real final: 495 filas de 512 combinaciones
          jugador-personaje, 0 errores.
+- [x] **Checkpoint HUD-10.2: textos agrandados en general.** A pedido
+      de Seba tras ver una captura del HUD completo compuesto en OBS:
+      "TDF RANDOM TOURNAMENT" (`.center-label`), "VS" (`.center-vs`),
+      el estado ("Reveal"/"Randomizando...", `.center-status`), y todo
+      el contenido de la carta de estadísticas (nombre del personaje,
+      "WIN%", el número) se veían chicos comparados con el resto del
+      HUD (las cartas grandes, el panel central). Subidos entre 20% y
+      35% cada uno.
 
 ## Fase 4 — Automatización completa de OBS
 
