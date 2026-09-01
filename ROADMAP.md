@@ -415,6 +415,28 @@ diseño acordado.
       lenguaje. 21 tests (subieron de 19): confirmando que las cartas
       baneadas quedan en la fila visible (no escondidas en el mazo), y
       que el panel dramático muestra personaje + jugador apilados.
+- [x] **Checkpoint HUD-7.1: nombre mal alineado + robustez de altura +
+      tamaños.** Confirmado con captura real que el "VS" y la 3ª carta
+      no se veían. Diagnóstico: la captura se sacó en una pestaña normal
+      del navegador (con barra de direcciones/pestañas, altura real
+      menor a 1080px), y varios márgenes internos estaban en píxeles
+      fijos en vez de proporcionales — en una ventana más baja que
+      1080p, esos píxeles fijos "comen" proporcionalmente más del
+      presupuesto de `35.4vh` y terminan empujando contenido fuera de
+      la pantalla visible. Convertidos los paddings críticos de
+      `.hud-bottom-bar`, `.player-side` y `.center-panel` a `vh`/
+      `clamp()`, y el tamaño del "VS" a `clamp(1.4rem, 7vh, 2.8rem)` —
+      se achica antes de desbordar, nunca desaparece. Esto debería
+      importar menos en OBS real (el Browser Source se configura a una
+      resolución exacta, sin chrome de navegador de por medio), pero
+      igual vale la pena no depender de que la ventana sea
+      exactamente 1080px. Bug real aparte: el nombre del jugador de la
+      franja compacta heredaba el mismo `align-items` que el mazo de
+      cartas y terminaba pegado al borde interior (junto al VS) en vez
+      del borde exterior real de la pantalla, viéndose como un nombre
+      redundante metido en el medio — arreglado con `align-self`
+      explícito en la placa. Tamaños subidos a pedido de Seba: nombre
+      del jugador +40%, nombre del torneo +30%.
 
 ## Fase 4 — Automatización completa de OBS
 

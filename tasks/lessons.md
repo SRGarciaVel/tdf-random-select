@@ -132,6 +132,29 @@
   timeout resuelto, randomizar, completar) tienen permiso de reemitir el
   estado completo.
 
+## Mezclar `vh` con píxeles fijos rompe en ventanas mas bajas que 1080p
+
+- La franja del HUD mide su altura en `vh` (35.4vh, pensado para
+  escalar con cualquier resolución), pero varios paddings/gaps internos
+  quedaron en píxeles fijos (`padding-bottom: 18px`, etc.). En una
+  ventana de altura real MENOR a 1080px (como una pestaña normal de
+  navegador con barra de direcciones, en vez del canvas exacto de OBS),
+  el presupuesto en `vh` se achica proporcionalmente pero los píxeles
+  fijos no - terminan comiendo una porción cada vez mayor del espacio
+  disponible, hasta que el contenido de más abajo (el "VS", la última
+  carta de baneo) queda literalmente empujado fuera de la pantalla
+  visible, sin overflow ni scroll que lo delate, solo "desaparece".
+- **Arreglo**: los paddings/gaps que compiten por el mismo presupuesto
+  de altura que ya está en `vh` pasan a `vh` también (o a `clamp()`
+  cuando conviene poner un piso/techo), para que todo se achique en
+  conjunto en vez de que una pieza fija rompa la proporción.
+- **Ojo con el entorno de prueba real**: en el Browser Source de OBS
+  esto importa menos (se configura a una resolución exacta, sin chrome
+  de navegador de por medio), pero vale la pena no depender de que la
+  ventana de prueba sea exactamente 1080px - Seba prueba en una pestaña
+  normal de Brave antes de pasar a OBS, así que el HUD tiene que
+  aguantar esa altura reducida también.
+
 ## `height: %` dentro de un grid item con `align-items: end` es ambiguo
 
 - El panel central (`.center-panel`) tenía `height: 80%` como hijo de un

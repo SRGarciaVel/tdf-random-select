@@ -113,7 +113,7 @@
 }
 
 .diagonal-plate-text-small {
-  font-size: 0.8rem;
+  font-size: 1.12rem; /* 0.8rem + 40%, a pedido de Seba */
 }
 
 /* --- Franja compacta (siempre visible, slots + nombres + centro) --- */
@@ -128,7 +128,12 @@
   display: grid;
   grid-template-columns: 36% 20.8% 36.2%;
   align-items: end;
-  padding-bottom: 18px;
+  /* padding en vh, no px fijos - si la ventana real es mas baja que
+   * 1080p (pestana normal del navegador en vez del canvas exacto de
+   * OBS), un padding fijo "come" proporcionalmente mas espacio del
+   * presupuesto y termina empujando contenido fuera de la pantalla
+   * (bug real encontrado por Seba, ver tasks/lessons.md). */
+  padding-bottom: 1.7vh;
   box-sizing: border-box;
 }
 
@@ -138,7 +143,7 @@
   gap: 8px;
   color: #f5f5f5;
   font-family: "JetBrains Mono", monospace;
-  padding: 10px 24px 14px;
+  padding: 1vh 24px 1.3vh;
   box-sizing: border-box;
   /* align-self:stretch para que el mazo pueda usar height:100% y quedar
    * a la misma altura que el panel central (checkpoint HUD-6, ver
@@ -156,6 +161,19 @@
   align-items: flex-start;
 }
 
+/* La placa de nombre se ancla al borde EXTERIOR (el costado real de la
+ * pantalla), no al borde interior pegado al panel central - antes
+ * heredaba el mismo align-items que el mazo y quedaba pegada al VS,
+ * viéndose como un nombre redundante metido en el medio (checkpoint
+ * HUD-7.1, a pedido de Seba tras ver el HUD real). */
+.player-side-left > .diagonal-plate {
+  align-self: flex-start;
+}
+
+.player-side-right > .diagonal-plate {
+  align-self: flex-end;
+}
+
 .ban-card-stack {
   display: flex;
   align-items: flex-end;
@@ -170,6 +188,7 @@
   align-items: flex-end;
   gap: 6px;
   height: 100%;
+  min-height: 0;
 }
 
 .ban-empty-stack {
@@ -320,13 +339,14 @@
   border: 1px solid var(--hud-accent-color);
   box-shadow: 0 0 20px var(--hud-accent-color);
   border-radius: 6px;
-  padding: 1.2rem 0.6rem;
+  padding: clamp(0.4rem, 3vh, 1.2rem) 0.6rem;
   /* align-self:stretch en vez de height:80% (que era ambiguo dentro de
    * una celda de grid con align-items:end en el padre y provocaba que
    * el panel quedara "flotando" mal posicionado, ver tasks/lessons.md) -
    * llena exactamente el alto de su columna del grid, sin adivinar. */
   align-self: stretch;
   box-sizing: border-box;
+  min-height: 0;
 }
 
 .center-panel-brand {
@@ -342,7 +362,7 @@
 }
 
 .center-label {
-  font-size: 0.6rem;
+  font-size: 0.78rem; /* 0.6rem + 30%, a pedido de Seba */
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -350,7 +370,7 @@
 }
 
 .center-vs {
-  font-size: 2.8rem;
+  font-size: clamp(1.4rem, 7vh, 2.8rem);
   font-weight: 800;
   letter-spacing: 0.05em;
   color: #fff;
@@ -365,6 +385,7 @@
   align-items: center;
   gap: 0.35rem;
   width: 100%;
+  min-height: 0;
 }
 
 .center-divider {
