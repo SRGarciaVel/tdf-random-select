@@ -323,6 +323,20 @@ diseño acordado.
          **dos tamaños por personaje** desde la misma descarga: WebP
          chico (slots) + **PNG grande** (`portraits-large/`, hasta
          1200px, sin comprimir) para el panel dramático.
+- [x] **Checkpoint HUD-5.2: calidad de imagen y panel central roto.**
+      Confirmado con capturas reales (preview funcionando en ambos
+      jugadores — el fix de la carrera del HUD-5.1 quedó validado). Dos
+      bugs nuevos encontrados:
+      1. **Calidad todavía insuficiente**: 1200px no alcanzaba porque
+         los renders de Capcom suelen ser más anchos que altos (poses
+         de acción), y el recorte tipo busto solo usa la franja
+         vertical — subido a `LARGE_MAX_DIMENSION_PX = 2400`.
+      2. **Panel central "flotando" mal, tapando slots**: tenía
+         `height: 80%` como hijo de un grid con `align-items: end` —
+         combinación ambigua (el item no se estira con `align-items:
+         end`, así que el porcentaje no tenía contra qué resolverse de
+         forma predecible). Cambiado a `align-self: stretch`, explícito
+         y sin ambigüedad (ver `tasks/lessons.md`).
 
 ## Fase 4 — Automatización completa de OBS
 

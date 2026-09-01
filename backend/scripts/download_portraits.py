@@ -11,7 +11,7 @@ desafio interactivo).
 Genera DOS tamanos por personaje, de la misma descarga:
 - Chico (WebP, ~500px): para los slots de baneo, que se ven muchos a la
   vez y no necesitan resolucion alta.
-- Grande (PNG, ~1200px): para el panel dramatico full-height del HUD
+- Grande (PNG, ~2400px): para el panel dramatico full-height del HUD
   (checkpoint HUD-5), donde una sola imagen ocupa gran parte de la
   pantalla y la calidad se nota - PNG en vez de WebP comprimido, a
   pedido explicito de Seba tras ver el HUD real (ver tasks/lessons.md).
@@ -54,7 +54,7 @@ REQUEST_DELAY_SECONDS = 1.0  # no golpear el sitio de Capcom sin pausas entre pe
 MAX_DIMENSION_PX = (
     500  # de sobra para un grid de baneo, ni cerca de la resolucion original
 )
-LARGE_MAX_DIMENSION_PX = 1200  # panel dramatico full-height - se nota la calidad
+LARGE_MAX_DIMENSION_PX = 2400  # panel dramatico full-height - se nota la calidad
 WEBP_QUALITY = 85
 
 # El CDN de Capcom devuelve 403 a la firma por defecto de requests

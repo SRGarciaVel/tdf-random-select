@@ -132,6 +132,26 @@
   timeout resuelto, randomizar, completar) tienen permiso de reemitir el
   estado completo.
 
+## `height: %` dentro de un grid item con `align-items: end` es ambiguo
+
+- El panel central (`.center-panel`) tenía `height: 80%` como hijo de un
+  `.hud-bottom-bar { display: grid; align-items: end; }`. Con
+  `align-items: end`, el item NO se estira para llenar la fila (se
+  auto-dimensiona por contenido y se ancla abajo) - un `height: 80%` en
+  ese contexto no tiene un porcentaje claro contra el cual resolverse,
+  y el resultado visual fue un panel "flotando" en una posición
+  impredecible, tapando parte de los slots de baneo.
+- **Arreglo**: `align-self: stretch` en el item específico en vez de un
+  `height` en porcentaje - le dice al grid explícitamente "llena el
+  alto completo de tu columna", sin ambigüedad, sin depender de cómo el
+  navegador interprete un porcentaje contra un contenedor de altura
+  intrínseca.
+- **Regla general**: evitar `height: %` dentro de contenedores flex/grid
+  salvo que el eje de alineación sea `stretch` (el default) o el padre
+  tenga una altura explícita y definida - en cualquier otro caso, usar
+  `align-self`/`flex`/unidades absolutas (`vh`, `px`) en vez de
+  porcentajes.
+
 ## Boilerplate de Vite sin limpiar causó un bug de alineación real
 
 - **`index.css` seguía con el boilerplate original de Vite**:
