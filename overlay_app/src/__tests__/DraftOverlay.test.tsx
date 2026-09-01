@@ -109,6 +109,70 @@ describe("DraftOverlay (HUD)", () => {
     expect((rightCards[0] as HTMLElement).style.left).toBe("0px");
   });
 
+  it("las cartas ya baneadas se ven todas en una fila visible, no escondidas detras", () => {
+    const state: MatchState = {
+      ...baseState,
+      status: "BANNING",
+      bans_per_player: 3,
+      bans: [
+        {
+          character_id: "ryu",
+          banned_by_player_id: playerA.id,
+          was_timeout: false,
+        },
+        {
+          character_id: "luke",
+          banned_by_player_id: playerB.id,
+          was_timeout: false,
+        },
+        {
+          character_id: "chun_li",
+          banned_by_player_id: playerA.id,
+          was_timeout: false,
+        },
+      ],
+      current_turn_player_id: playerB.id,
+    };
+    render(
+      <DraftOverlay
+        matchState={state}
+        roster={roster}
+        broadcastSettings={defaultBroadcastSettings}
+      />,
+    );
+    // Sirxtias (player A) baneo ryu y chun_li - las dos deben estar en la
+    // fila visible (ban-row), no en el mazo compacto (ban-empty-stack).
+    const leftRow = screen
+      .getByTestId("ban-card-stack-left")
+      .querySelector(".ban-row");
+    expect(leftRow).not.toBeNull();
+    expect(screen.getByTestId("ban-card-ryu")).toBeInTheDocument();
+    expect(screen.getByTestId("ban-card-chun_li")).toBeInTheDocument();
+    expect(leftRow?.contains(screen.getByTestId("ban-card-ryu"))).toBe(true);
+    expect(leftRow?.contains(screen.getByTestId("ban-card-chun_li"))).toBe(
+      true,
+    );
+  });
+
+  it("el panel dramatico muestra el nombre del personaje y del jugador apilados", () => {
+    const state: MatchState = {
+      ...baseState,
+      status: "BANNING",
+      current_turn_player_id: playerA.id,
+    };
+    render(
+      <DraftOverlay
+        matchState={state}
+        roster={roster}
+        broadcastSettings={defaultBroadcastSettings}
+        candidatePreview={{ character_id: "ryu", player_id: playerA.id }}
+      />,
+    );
+    const panel = screen.getByTestId("dramatic-left");
+    expect(panel).toHaveTextContent("Ryu");
+    expect(panel).toHaveTextContent("Sirxtias");
+  });
+
   it("un baneo real llena el slot con el retrato y el tajo", () => {
     const state: MatchState = {
       ...baseState,

@@ -393,6 +393,28 @@ diseño acordado.
       19 tests (subieron de 17): 2 nuevos confirmando que el mazo no
       aparece en `SETUP` y que la carta del primer baneo ancla contra el
       borde más cercano al centro.
+- [x] **Checkpoint HUD-7: fila visible para baneados + placas diagonales
+      TDF.** Confirmado que HUD-6 arregló el ancho, pero las cartas
+      baneadas quedaban casi escondidas dentro del mazo (solo se veía un
+      sliver de las de atrás) — el problema que resolvía el mazo
+      (espacio) generó uno nuevo (visibilidad). Solución acordada:
+      separar "cartas por usar" de "cartas ya usadas". El mazo compacto
+      (`ban-empty-stack`) ahora solo contiene los baneos *pendientes*
+      (apagados, no importa que no se lean bien, son placeholders); cada
+      baneo confirmado se saca de ahí y pasa a una **fila visible**
+      (`ban-row`) que crece desde el centro hacia afuera en el orden en
+      que se banearon — ahí sí se ve cada personaje baneado con
+      claridad. De paso, el nombre del jugador se movió arriba de las
+      cartas (antes al costado) usando una **placa con corte diagonal**
+      (`clip-path`) — mismo lenguaje visual del `hud-frame` de
+      `tdf-edeportes` (identidad TDF, no un estilo suelto). El mismo
+      componente `DiagonalPlate` se reutiliza en el panel dramático: el
+      nombre del personaje (grande) y el nombre del jugador (chico)
+      apilados, ambos con el corte diagonal — antes el panel dramático
+      solo mostraba el nombre del personaje en una barra sin ese
+      lenguaje. 21 tests (subieron de 19): confirmando que las cartas
+      baneadas quedan en la fila visible (no escondidas en el mazo), y
+      que el panel dramático muestra personaje + jugador apilados.
 
 ## Fase 4 — Automatización completa de OBS
 

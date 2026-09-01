@@ -53,34 +53,67 @@
   object-position: center 15%;
 }
 
-.dramatic-panel-name-bar {
+.dramatic-panel-plates {
   position: absolute;
   bottom: 24px;
-  padding: 8px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dramatic-panel-left .dramatic-panel-plates {
+  left: 0;
+  align-items: flex-start;
+}
+
+.dramatic-panel-right .dramatic-panel-plates {
+  right: 0;
+  align-items: flex-end;
+}
+
+/* --- Placa con corte diagonal (identidad TDF, checkpoint HUD-7) ---
+ * compartida entre el nombre del jugador de la franja compacta y el
+ * personaje/jugador del panel dramatico. Izquierda: borde recto largo
+ * pegado al borde de pantalla, la diagonal cierra hacia la derecha.
+ * Derecha: espejado. */
+.diagonal-plate {
+  background: #fff;
+  padding: 6px 22px 6px 14px;
   width: fit-content;
 }
 
-.dramatic-panel-left .dramatic-panel-name-bar {
-  left: 0;
-  background: #fff;
-  text-align: left;
-  border-radius: 0 4px 4px 0;
+.diagonal-plate-left {
+  clip-path: polygon(0 0, 88% 0, 100% 100%, 0 100%);
 }
 
-.dramatic-panel-right .dramatic-panel-name-bar {
-  right: 0;
-  background: #fff;
-  text-align: right;
-  border-radius: 4px 0 0 4px;
+.diagonal-plate-right {
+  clip-path: polygon(12% 0, 100% 0, 100% 100%, 0 100%);
+  padding: 6px 14px 6px 22px;
 }
 
-.dramatic-panel-name {
+.diagonal-plate-text {
+  display: block;
   color: #111;
   font-family: "JetBrains Mono", monospace;
-  font-size: 1.5rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+}
+
+.diagonal-plate-left .diagonal-plate-text {
+  text-align: left;
+}
+
+.diagonal-plate-right .diagonal-plate-text {
+  text-align: right;
+}
+
+.diagonal-plate-text-large {
+  font-size: 1.4rem;
+}
+
+.diagonal-plate-text-small {
+  font-size: 0.8rem;
 }
 
 /* --- Franja compacta (siempre visible, slots + nombres + centro) --- */
@@ -101,53 +134,68 @@
 
 .player-side {
   display: flex;
-  align-items: flex-end;
-  gap: 0.75rem;
+  flex-direction: column;
+  gap: 8px;
   color: #f5f5f5;
   font-family: "JetBrains Mono", monospace;
-  padding: 14px 28px;
+  padding: 10px 24px 14px;
   box-sizing: border-box;
   /* align-self:stretch para que el mazo pueda usar height:100% y quedar
    * a la misma altura que el panel central (checkpoint HUD-6, ver
    * ROADMAP.md) - sin esto el porcentaje no tiene contra que resolverse
    * (mismo problema que ya tuvimos con el panel central, ver
-   * tasks/lessons.md). Se saco tambien el overflow:hidden que venia
-   * cortando los nombres contra el borde. */
+   * tasks/lessons.md). */
   align-self: stretch;
 }
 
 .player-side-left {
-  justify-content: flex-end;
+  align-items: flex-end;
 }
 
 .player-side-right {
-  justify-content: flex-start;
-}
-
-.player-name-label {
-  font-size: 1.4rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  white-space: nowrap;
-  padding: 0 0.5rem;
-  flex-shrink: 0;
+  align-items: flex-start;
 }
 
 .ban-card-stack {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  height: 100%;
+  min-height: 0;
+  flex: 1;
+}
+
+.ban-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 100%;
+}
+
+.ban-empty-stack {
   position: relative;
   height: 100%;
-  width: calc((var(--hud-bottom-bar-height) - 28px) * 0.62 + 90px);
+  width: calc((var(--hud-bottom-bar-height) - 60px) * 0.62 + 50px);
   flex-shrink: 0;
 }
 
 .ban-card {
-  position: absolute;
-  bottom: 0;
+  position: relative;
   border-radius: 4px;
   border: 2px solid #333;
   background: rgba(20, 20, 20, 0.6);
   overflow: hidden;
   aspect-ratio: 0.62;
+  flex-shrink: 0;
+}
+
+.ban-row .ban-card {
+  height: 100%;
+}
+
+.ban-empty-stack .ban-card {
+  position: absolute;
+  bottom: 0;
 }
 
 .ban-card.empty {

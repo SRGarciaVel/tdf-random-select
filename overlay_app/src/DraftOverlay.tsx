@@ -76,54 +76,40 @@ function useCountdown(deadlineMs: number | null): number | null {
   return remaining;
 }
 
-function BanCard({
-  index,
+// Placa con corte diagonal (identidad visual de TDF, mismo lenguaje que
+// el hud-frame de tdf-edeportes) - compartida entre el nombre del
+// jugador en la franja compacta y el nombre del personaje/jugador en el
+// panel dramatico (checkpoint HUD-7, ver ROADMAP.md).
+function DiagonalPlate({
   side,
-  ban,
-  roster,
-  isActive,
-  deadlineMs,
+  text,
+  size,
 }: {
-  index: number;
   side: "left" | "right";
-  ban: BanRecord | undefined;
-  roster: RosterMap;
-  isActive: boolean;
-  deadlineMs: number | null;
+  text: string;
+  size: "small" | "large";
 }) {
-  const remaining = useCountdown(isActive ? deadlineMs : null);
-  const character = ban?.character_id ? roster[ban.character_id] : null;
-  const wasSkipped = ban !== undefined && ban.character_id === null;
-  const isFilled = character != null || wasSkipped;
+  return (
+    <div className={`diagonal-plate diagonal-plate-${side}`}>
+      <span className={`diagonal-plate-text diagonal-plate-text-${size}`}>
+        {text}
+      </span>
+    </div>
+  );
+}
 
-  // La carta del primer baneo (index 0) va pegada al panel central, al
-  // frente del mazo (z-index mas alto). Las siguientes se asoman detras,
-  // corridas hacia el nombre del jugador, un poco mas chicas (profundidad
-  // de mazo real) - checkpoint HUD-6, ver ROADMAP.md.
-  const peekOffsetPx = index * 28;
-  const positionStyle: React.CSSProperties = {
-    zIndex: 100 - index,
-    height: `${100 - index * 5}%`,
-    [side === "left" ? "right" : "left"]: `${peekOffsetPx}px`,
-  };
+function FilledBanCard({ ban, roster }: { ban: BanRecord; roster: RosterMap }) {
+  const character = ban.character_id ? roster[ban.character_id] : null;
 
   return (
     <motion.div
-      key={isFilled ? "filled" : "empty"}
-      className={`ban-card${isFilled ? " filled" : " empty"}${isActive ? " active" : ""}`}
-      style={positionStyle}
+      className="ban-card filled"
       data-testid={character ? `ban-card-${character.id}` : undefined}
-      initial={
-        character ? { scale: 1, filter: "grayscale(0)", opacity: 1 } : false
-      }
-      animate={
-        character
-          ? { scale: [1, 1.08, 1], filter: "grayscale(1)", opacity: 0.55 }
-          : {}
-      }
+      initial={{ scale: 1, filter: "grayscale(0)", opacity: 1 }}
+      animate={{ scale: [1, 1.08, 1], filter: "grayscale(1)", opacity: 0.55 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
     >
-      {character && (
+      {character ? (
         <>
           <motion.img
             layoutId={`char-${character.id}`}
@@ -132,13 +118,12 @@ function BanCard({
           />
           <BanSlash />
         </>
-      )}
-      {wasSkipped && (
+      ) : (
         <div className="skipped-marker" data-testid="skipped-marker">
           —
         </div>
       )}
-      {ban?.was_timeout && (
+      {ban.was_timeout && (
         <div
           className="timeout-icon"
           data-testid="timeout-icon"
@@ -147,13 +132,42 @@ function BanCard({
           ⏱
         </div>
       )}
+    </motion.div>
+  );
+}
+
+function EmptyBanCard({
+  index,
+  side,
+  isActive,
+  deadlineMs,
+}: {
+  index: number;
+  side: "left" | "right";
+  isActive: boolean;
+  deadlineMs: number | null;
+}) {
+  const remaining = useCountdown(isActive ? deadlineMs : null);
+  // index 0 = la proxima a banearse, pegada a la fila de baneadas
+  // (mas cerca del centro). Las siguientes se asoman detras, hacia el
+  // nombre - mismo criterio que antes, pero ahora solo aplica a las
+  // que TODAVIA no se banearon (las baneadas se van a la fila visible).
+  const peekOffsetPx = index * 22;
+  const style: React.CSSProperties = {
+    zIndex: 100 - index,
+    height: `${100 - index * 6}%`,
+    [side === "left" ? "right" : "left"]: `${peekOffsetPx}px`,
+  };
+
+  return (
+    <div className={`ban-card empty${isActive ? " active" : ""}`} style={style}>
       {isActive && <div className="active-glow" />}
       {isActive && remaining !== null && (
         <div className="countdown" data-testid="countdown">
           {remaining}
         </div>
       )}
-    </motion.div>
+    </div>
   );
 }
 
@@ -172,7 +186,38 @@ function BanCardStack({
   isActive: boolean;
   deadlineMs: number | null;
 }) {
-  const indices = Array.from({ length: bansPerPlayer }, (_, i) => i);
+  const remainingCount = Math.max(0, bansPerPlayer - bans.length);
+  const emptyIndices = Array.from({ length: remainingCount }, (_, i) => i);
+  // El primer baneo de cada jugador queda mas cerca del centro - del lado
+  // izquierdo eso significa dibujar la fila al reves (el mas antiguo
+  // pegado al centro, no al nombre).
+  const orderedFilledBans = side === "left" ? [...bans].reverse() : bans;
+
+  const filledRow = bans.length > 0 && (
+    <div className={`ban-row ban-row-${side}`}>
+      {orderedFilledBans.map((ban, i) => (
+        <FilledBanCard
+          key={ban.character_id ?? `skip-${i}`}
+          ban={ban}
+          roster={roster}
+        />
+      ))}
+    </div>
+  );
+
+  const emptyStack = remainingCount > 0 && (
+    <div className={`ban-empty-stack ban-empty-stack-${side}`}>
+      {emptyIndices.map((index) => (
+        <EmptyBanCard
+          key={index}
+          index={index}
+          side={side}
+          isActive={isActive && index === 0}
+          deadlineMs={deadlineMs}
+        />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -186,27 +231,29 @@ function BanCardStack({
       animate={{ x: 0, opacity: 1 }}
       transition={{ type: "spring", stiffness: 200, damping: 24 }}
     >
-      {indices.map((index) => (
-        <BanCard
-          key={index}
-          index={index}
-          side={side}
-          ban={bans[index]}
-          roster={roster}
-          isActive={isActive && index === bans.length}
-          deadlineMs={deadlineMs}
-        />
-      ))}
+      {side === "left" ? (
+        <>
+          {emptyStack}
+          {filledRow}
+        </>
+      ) : (
+        <>
+          {filledRow}
+          {emptyStack}
+        </>
+      )}
     </motion.div>
   );
 }
 
 function DramaticCharacterPanel({
   character,
+  playerName,
   side,
   testId,
 }: {
   character: CharacterInfo;
+  playerName: string;
   side: "left" | "right";
   testId: string;
 }) {
@@ -226,8 +273,9 @@ function DramaticCharacterPanel({
         src={portraitUrlLarge(character.id)}
         alt={character.display_name}
       />
-      <div className="dramatic-panel-name-bar">
-        <span className="dramatic-panel-name">{character.display_name}</span>
+      <div className="dramatic-panel-plates">
+        <DiagonalPlate side={side} text={character.display_name} size="large" />
+        <DiagonalPlate side={side} text={playerName} size="small" />
       </div>
     </motion.div>
   );
@@ -252,17 +300,13 @@ function PlayerSide({
   isActive: boolean;
   deadlineMs: number | null;
 }) {
-  const nameLabel = (
-    <div className="player-name-label">{player.display_name}</div>
-  );
-
   // El mazo recien "nace" (se reparte desde el centro) cuando arranca el
   // baneo - antes de eso (SETUP) no hay nada que mostrar todavia.
   const showStack = status !== "SETUP";
 
   return (
     <div className={`player-side player-side-${side}`}>
-      {side === "left" && nameLabel}
+      <DiagonalPlate side={side} text={player.display_name} size="small" />
       {showStack && (
         <BanCardStack
           side={side}
@@ -273,7 +317,6 @@ function PlayerSide({
           deadlineMs={deadlineMs}
         />
       )}
-      {side === "right" && nameLabel}
     </div>
   );
 }
@@ -379,6 +422,7 @@ export default function DraftOverlay({
         {leftDramaticCharacter && (
           <DramaticCharacterPanel
             character={leftDramaticCharacter}
+            playerName={matchState.player_a?.display_name ?? ""}
             side="left"
             testId="dramatic-left"
           />
@@ -388,6 +432,7 @@ export default function DraftOverlay({
         {rightDramaticCharacter && (
           <DramaticCharacterPanel
             character={rightDramaticCharacter}
+            playerName={matchState.player_b?.display_name ?? ""}
             side="right"
             testId="dramatic-right"
           />
