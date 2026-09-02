@@ -34,5 +34,5 @@ class MainWindow(QMainWindow):
         tabs.addTab(BanningScreen(session_factory), "Baneo")
         tabs.addTab(BroadcastSettingsScreen(session_factory), "Transmisión")
         tabs.addTab(ObsSettingsScreen(session_factory), "OBS")
-        tabs.addTab(DiagnosticsScreen(), "Diagnóstico")
+        tabs.addTab(DiagnosticsScreen(session_factory), "Diagnóstico")
         self.setCentralWidget(tabs)

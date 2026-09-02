@@ -26,6 +26,7 @@ from sqlalchemy.orm import sessionmaker
 
 from backend.app.data.sf6_roster import SF6_ROSTER
 from backend.app.models import Match
+from backend.app.services.broadcast_settings_service import get_broadcast_settings
 from backend.app.services.character_stats_service import (
     CharacterStatsUnavailable,
     fetch_character_stats,
@@ -52,7 +53,6 @@ from control_panel.theme import mark_as_primary_action
 
 CHARACTER_DISPLAY_NAMES = {entry["id"]: entry["display_name"] for entry in SF6_ROSTER}
 GRID_COLUMNS = 8
-BAN_TIMER_MS = 30_000  # 30s por baneo (HUD) - parametro para poder acortarlo en tests
 
 # Mismos retratos chicos que ya usa el overlay (checkpoint UI-4, ver
 # ROADMAP.md) - QPixmap carga .webp sin problema (confirmado con un
@@ -167,7 +167,7 @@ class BanningScreen(QWidget):
     _cfn_profile_fetched = pyqtSignal(object)
 
     def __init__(
-        self, session_factory: sessionmaker, timer_ms: int = BAN_TIMER_MS
+        self, session_factory: sessionmaker, timer_ms: int | None = None
     ) -> None:
         super().__init__()
         self._session_factory = session_factory
@@ -175,6 +175,14 @@ class BanningScreen(QWidget):
         self._character_buttons: dict[str, CharacterButton] = {}
         self._overlay_bridge = OverlayBridge()
 
+        if timer_ms is None:
+            # Antes era una constante fija (BAN_TIMER_MS, 30s siempre) -
+            # ahora sale de la pestaña Transmisión (checkpoint UI-5),
+            # configurable sin tocar código. timer_ms explícito (usado
+            # en tests) sigue pisando esto, para no depender de la base
+            # en pruebas rápidas.
+            with session_factory() as session:
+                timer_ms = get_broadcast_settings(session).ban_timer_seconds * 1000
         self._timer_ms = timer_ms
         self._ban_timer = QTimer(self)
         self._ban_timer.setSingleShot(True)

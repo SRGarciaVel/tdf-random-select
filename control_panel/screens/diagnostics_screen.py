@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-import os
-
 import socketio as socketio_client
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QLabel, QMessageBox, QPushButton, QVBoxLayout, QWidget
+from sqlalchemy.orm import sessionmaker
 
 from backend.app.services.obs_service import ObsConnectionError, ObsService
+from backend.app.services.obs_settings_service import get_obs_settings
 
 BACKEND_URL = "http://localhost:5001"
 
@@ -16,30 +17,25 @@ class DiagnosticsScreen(QWidget):
     diagnosticar problemas de conexion sin tener que armar un match real.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, session_factory: sessionmaker) -> None:
         super().__init__()
+        self._session_factory = session_factory
 
         self._sio = socketio_client.Client()
-        # Configurable por env var mientras no existe la pantalla de
-        # configuracion de OBS real (obs_settings, ver ROADMAP.md Fase 2).
-        # Necesario para probar desde WSL2 en modo NAT, donde "localhost"
-        # no apunta al Windows host real (ver tasks/lessons.md).
-        obs_host = os.environ.get("OBS_HOST", "localhost")
-        obs_port = int(os.environ.get("OBS_PORT", "4455"))
-        obs_password = os.environ.get("OBS_PASSWORD", "")
-        self._obs = ObsService(host=obs_host, port=obs_port, password=obs_password)
 
         self._status_label = QLabel("Sin conexión al backend todavía.")
         ping_button = QPushButton("Ping")
         ping_button.clicked.connect(self._on_ping_clicked)
+        ping_button.setMaximumWidth(320)
 
         obs_button = QPushButton("Test OBS")
         obs_button.clicked.connect(self._on_test_obs_clicked)
+        obs_button.setMaximumWidth(320)
 
         layout = QVBoxLayout()
         layout.addWidget(self._status_label)
-        layout.addWidget(ping_button)
-        layout.addWidget(obs_button)
+        layout.addWidget(ping_button, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(obs_button, alignment=Qt.AlignmentFlag.AlignHCenter)
         layout.addStretch()
         self.setLayout(layout)
 
@@ -61,9 +57,19 @@ class DiagnosticsScreen(QWidget):
             self._status_label.setText(f"Error de conexión al backend: {exc}")
 
     def _on_test_obs_clicked(self) -> None:
+        # Lee la config real de la pestaña OBS (checkpoint Fase 4) - antes
+        # este boton usaba variables de entorno sueltas, heredadas del
+        # walking skeleton de antes de que existiera esa pestaña, y
+        # quedaban desactualizadas frente a lo que el staff configura de
+        # verdad en la app.
+        with self._session_factory() as session:
+            settings = get_obs_settings(session)
+        obs = ObsService(
+            host=settings.host, port=settings.port, password=settings.password or ""
+        )
         try:
-            self._obs.connect()
-            scenes = self._obs.list_scenes()
+            obs.connect()
+            scenes = obs.list_scenes()
             QMessageBox.information(
                 self, "Escenas de OBS", "\n".join(scenes) or "Sin escenas."
             )

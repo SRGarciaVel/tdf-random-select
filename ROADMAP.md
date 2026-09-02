@@ -829,17 +829,61 @@ VS Code. Checkpoints en orden (cada pantalla se hace por separado):
       marcador de baneado, eliminar individual, limpieza masiva) - 75
       en total. Verificado también con una captura real de la pantalla
       completa (`window.grab()`), no solo tests.
-- [ ] **Checkpoint UI-5 (pendiente): pantalla Transmisión, repensada.**
-      Hoy está subutilizada (solo nombre/logo/colores, poco uso real).
-      Direcciones acordadas para explorar, las 4 juntas:
-      1. Vista previa en vivo del HUD dentro del panel (mini-render que
-         se actualiza mientras se tocan los campos).
-      2. Presets guardados (combos completos con nombre, para tener
-         listo un preset armado con anticipación).
-      3. Espacio para logos de auspiciadores/redes.
-      4. Un checklist "antes de salir al aire" centralizando cosas que
-         hoy viven sueltas en otras pestañas (segundos del timer de
-         baneo, comportamiento al agotarse, etc.).
+- [x] **Checkpoint UI-5: pantalla Transmisión, repensada por completo.**
+      Reorganizada en secciones claras (Torneo, Colores del HUD, Logo
+      de auspiciador, Timer, Vista previa, Presets, Antes de salir al
+      aire) - antes era un formulario plano de nombre/logo/colores.
+      1. **Vista previa en vivo**: un `QFrame` con el color de acento
+         (borde) y fondo de paneles configurados de verdad, más el
+         nombre del torneo y el logo (si hay uno de tipo "torneo") - se
+         actualiza al toque con cada cambio (`textChanged`, elegir
+         color, elegir logo), sin tener que guardar primero.
+      2. **Presets**: modelo nuevo `BroadcastPreset` (tabla propia,
+         copia todos los campos configurables de `BroadcastSettings`
+         con un nombre) + `broadcast_preset_service.py`
+         (guardar/listar/aplicar/eliminar). "Guardar como preset"
+         primero persiste lo que está tipeado en pantalla a la fila
+         real, después lo clona a un preset con nombre - "Aplicar"
+         copia esos valores de vuelta a la fila real y recarga toda la
+         pantalla.
+      3. **Logo de auspiciador**: mismo flujo que el logo del torneo
+         (elegir archivo → copia a `overlay_app/public/branding/` →
+         requiere `npm run build`), campo nuevo
+         `sponsor_logo_filename` en `BroadcastSettings`.
+      4. **Timer de baneo configurable**: antes era una constante fija
+         en Python (`BAN_TIMER_MS = 30_000` en `banning_screen.py`),
+         sin forma de cambiarla sin tocar código - ahora
+         `BroadcastSettings.ban_timer_seconds` (default 30, mínimo 5) y
+         `BanningScreen` lo lee de la base al arrancar (el parámetro
+         `timer_ms` explícito sigue pisándolo, para no depender de la
+         base en tests rápidos). El resto del checklist queda como
+         recordatorio estático apuntando a Setup/Baneo/OBS.
+
+      **Migración real resuelta de paso**: agregar dos campos nuevos a
+      `broadcast_settings` (una tabla que ya existe con datos reales de
+      Seba) es exactamente el escenario de "cómo se actualiza" que se
+      charló en el chat antes de este checkpoint -
+      `Base.metadata.create_all()` solo crea tablas que faltan, nunca
+      agrega columnas a una que ya existe. Se agregó `_ensure_columns()`
+      en `models/base.py` (repara la base via `ALTER TABLE`, chequeando
+      antes con `PRAGMA table_info`), llamado desde `init_db()` en cada
+      arranque - verificado con un test real que arma a mano una tabla
+      con el esquema VIEJO (sin las columnas nuevas), le mete un dato
+      real, corre `init_db()` con el modelo nuevo encima, y confirma que
+      la columna aparece con su default Y el dato viejo sigue intacto.
+      Esta pieza queda como el mecanismo general para cualquier columna
+      nueva futura, no solo esta.
+
+      De paso: los botones de acción de Setup, OBS y Diagnóstico
+      recibieron el mismo arreglo de ancho máximo + centrado que Baneo
+      (dejaron de ser barras de punta a punta), y "Test OBS" en
+      Diagnóstico pasó a leer la configuración real de la pestaña OBS
+      en vez de variables de entorno viejas heredadas del walking
+      skeleton.
+
+      28 tests nuevos (14 de `broadcast_settings_service`/
+      `broadcast_preset_service`, 6 de la UI real de Transmisión, más
+      la migración de columnas) - 87 en total.
 
 ## Fase 5 — Empaquetado
 

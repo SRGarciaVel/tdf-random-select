@@ -23,7 +23,7 @@ def get_broadcast_settings(session: Session) -> BroadcastSettings:
     return settings
 
 
-def _validate_color(value: str, field_name: str) -> str:
+def validate_color(value: str, field_name: str) -> str:
     value = value.strip()
     if not COLOR_PATTERN.match(value):
         raise ValueError(
@@ -40,21 +40,29 @@ def update_broadcast_settings(
     custom_logo_filename: str | None = None,
     accent_color: str | None = None,
     panel_background_color: str | None = None,
+    ban_timer_seconds: int | None = None,
+    sponsor_logo_filename: str | None = None,
 ) -> BroadcastSettings:
     if logo_choice not in VALID_LOGO_CHOICES:
         raise ValueError(
             f"logo_choice debe ser uno de {VALID_LOGO_CHOICES}, no '{logo_choice}'."
         )
+    if ban_timer_seconds is not None and ban_timer_seconds < 5:
+        raise ValueError("ban_timer_seconds debe ser al menos 5 segundos.")
     settings = get_broadcast_settings(session)
     settings.tournament_label = (tournament_label or "").strip() or None
     settings.logo_choice = logo_choice
     if custom_logo_filename is not None:
         settings.custom_logo_filename = custom_logo_filename
     if accent_color is not None:
-        settings.accent_color = _validate_color(accent_color, "accent_color")
+        settings.accent_color = validate_color(accent_color, "accent_color")
     if panel_background_color is not None:
-        settings.panel_background_color = _validate_color(
+        settings.panel_background_color = validate_color(
             panel_background_color, "panel_background_color"
         )
+    if ban_timer_seconds is not None:
+        settings.ban_timer_seconds = ban_timer_seconds
+    if sponsor_logo_filename is not None:
+        settings.sponsor_logo_filename = sponsor_logo_filename
     session.commit()
     return settings

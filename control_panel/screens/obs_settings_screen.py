@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QComboBox,
     QFormLayout,
@@ -47,11 +48,13 @@ class ObsSettingsScreen(QWidget):
 
         test_button = QPushButton("Probar conexión")
         test_button.clicked.connect(self._on_test_connection_clicked)
+        test_button.setMaximumWidth(320)
         self._test_status_label = QLabel("")
 
         save_button = QPushButton("Guardar")
         save_button.clicked.connect(self._on_save_clicked)
         mark_as_primary_action(save_button)
+        save_button.setMaximumWidth(320)
         self._save_status_label = QLabel("")
 
         form = QFormLayout()
@@ -62,9 +65,9 @@ class ObsSettingsScreen(QWidget):
 
         layout = QVBoxLayout()
         layout.addLayout(form)
-        layout.addWidget(test_button)
+        layout.addWidget(test_button, alignment=Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(self._test_status_label)
-        layout.addWidget(save_button)
+        layout.addWidget(save_button, alignment=Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(self._save_status_label)
         layout.addWidget(
             QLabel(

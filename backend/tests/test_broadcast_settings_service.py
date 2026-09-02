@@ -77,3 +77,25 @@ def test_update_without_color_args_keeps_previous_colors(session: Session) -> No
     update_broadcast_settings(session, "Torneo", "tdf", accent_color="#123456")
     settings = update_broadcast_settings(session, "Torneo", "tdf")  # sin tocar colores
     assert settings.accent_color == "#123456"
+
+
+def test_default_ban_timer_seconds_is_30(session: Session) -> None:
+    settings = get_broadcast_settings(session)
+    assert settings.ban_timer_seconds == 30
+
+
+def test_update_ban_timer_seconds(session: Session) -> None:
+    settings = update_broadcast_settings(session, "", "tdf", ban_timer_seconds=45)
+    assert settings.ban_timer_seconds == 45
+
+
+def test_update_rejects_ban_timer_too_short(session: Session) -> None:
+    with pytest.raises(ValueError):
+        update_broadcast_settings(session, "", "tdf", ban_timer_seconds=2)
+
+
+def test_update_sponsor_logo_filename(session: Session) -> None:
+    settings = update_broadcast_settings(
+        session, "", "tdf", sponsor_logo_filename="auspiciador.webp"
+    )
+    assert settings.sponsor_logo_filename == "auspiciador.webp"
