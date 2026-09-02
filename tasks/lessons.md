@@ -6,29 +6,37 @@
   se abría sin límite, extendiéndose fuera de la ventana en vez de
   mostrar su propia barra de scroll. `setMaxVisibleItems(10)` es la
   forma "de manual" de arreglar esto - pero no funcionó solo.
-- **Causa real**: el tema oscuro (checkpoint UI-1) le pone un QSS propio
-  a `QComboBox QAbstractItemView` (fondo, borde, colores de selección).
-  Con un estilo custom en la vista del popup, Qt a veces recalcula el
-  `sizeHint()` del popup a partir del contenido real en vez de respetar
-  `maxVisibleItems` - el límite queda ahí seteado, pero Qt lo ignora al
-  calcular cuánto espacio darle al popup.
+- **Primer intento (insuficiente)**: fijar `view().setMaximumHeight(260)`
+  a mano. Mejoró la situación pero dejó un bug nuevo, real: un hueco en
+  blanco arriba de la lista, con los items recién apareciendo cerca del
+  final del espacio reservado. Con QSS propio en
+  `QComboBox QAbstractItemView`, Qt seguía usando por dentro el modo de
+  popup "nativo" (el del sistema operativo), que ignora la altura
+  fijada en la vista y deja el MARCO del popup con su tamaño original
+  sin recortar - solo la vista interna quedaba constreñida, generando
+  ese hueco.
+- **Causa raíz real, encontrada en la tercera vuelta**:
+  `combobox-popup: 0` en el QSS del propio `QComboBox` - una propiedad
+  de estilo de Qt hecha específicamente para este caso. Fuerza el modo
+  de popup "clásico" (dibujado por Qt mismo, no delegado al sistema
+  operativo), que es el único que respeta `setMaxVisibleItems()` y
+  `setMaximumHeight()` de forma confiable cuando hay un QSS propio de
+  por medio.
 - **La sospecha inicial fue "¿es WSL2?"** - una hipótesis razonable
   dado que se desarrolla ahí y el target final es Windows nativo, pero
-  incorrecta: era la propia hoja de estilos, no el entorno. Vale la
-  pena, cada vez que hay una duda de "¿es el entorno o es el código?",
-  primero descartar causas propias (sobre todo cambios recientes,
-  como un tema nuevo) antes de asumir que es una particularidad de
-  WSL2/X11 - más fácil de verificar y más probable en la práctica.
-- **Arreglo real**: fijar la altura máxima de la vista del popup a mano
-  (`combo.view().setMaximumHeight(260)`), en vez de confiar en que
-  `setMaxVisibleItems()` alcance por sí solo cuando hay QSS propio de
-  por medio.
-- **Cómo se verificó de verdad**: no alcanzaba con revisar que la
-  propiedad quedara seteada - había que abrir el popup de verdad
-  (`combo.showPopup()`) con el tema real aplicado (`apply_theme(app)`)
-  y medir el alto renderizado real, porque el bug solo aparecía en esa
-  combinación exacta (QSS + popup real), no en el valor de la propiedad
-  por sí solo.
+  incorrecta las tres veces: era la propia hoja de estilos interfiriendo
+  con el modo de popup de Qt, no el entorno. Vale la pena, cada vez que
+  hay una duda de "¿es el entorno o es el código?", primero descartar
+  causas propias (sobre todo cambios recientes, como un tema nuevo)
+  antes de asumir que es una particularidad de WSL2/X11 - más fácil de
+  verificar y más probable en la práctica.
+- **Cómo se verificó de verdad, cada vez**: nunca alcanzaba con revisar
+  que una propiedad quedara seteada en el código - había que abrir el
+  popup de verdad (`combo.showPopup()`) con el tema real aplicado
+  (`apply_theme(app)`) y, en la vuelta final, sacarle una captura real
+  (`combo.view().window().grab()`) para confirmar que no quedaba hueco
+  en blanco - medir solo la altura no hubiera detectado ese bug
+  puntual, hacía falta ver el resultado.
 
 ## `emit(evento, None)` no se entrega de forma confiable al otro lado
 

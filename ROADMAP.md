@@ -742,19 +742,24 @@ VS Code. Checkpoints en orden (cada pantalla se hace por separado):
       lista larga completa, ahora usa su propia barra de scroll interna
       (`QListWidget` ya la trae, solo hacía falta ponerle un techo).
       6 tests nuevos del servicio + 5 de la UI real - 71 en total.
-      **Dos rondas de fix tras las pruebas reales**: (1) el scroll que
+      **Tres rondas de fix tras las pruebas reales**: (1) el scroll que
       faltaba no era el de la lista de ya agregados (ese ya tenía el
       límite de alto) sino el del propio desplegable del combo para
       *agregar* un personaje nuevo. (2) `setMaxVisibleItems()` solo no
-      alcanzó — con un QSS propio en `QComboBox QAbstractItemView`
-      (checkpoint UI-1), Qt a veces recalcula el tamaño del popup
-      ignorando ese límite. No era un problema de WSL2 (la sospecha
-      inicial de Seba) sino del propio tema oscuro interfiriendo con el
-      cálculo automático de Qt - se necesitó fijar la altura máxima
-      real de la vista a mano (`view().setMaximumHeight(260)`), y se
-      verificó abriendo el popup de verdad (`showPopup()`) con el tema
-      real aplicado, no solo revisando que la propiedad estuviera
-      seteada.
+      alcanzó - no era un problema de WSL2 (la sospecha inicial de
+      Seba) sino del QSS propio (checkpoint UI-1) interfiriendo con el
+      cálculo automático de Qt. (3) fijar `view().setMaximumHeight()`
+      a mano tampoco alcanzó del todo - dejaba un hueco en blanco
+      arriba de la lista, porque con QSS propio Qt seguía usando el
+      modo de popup "nativo" por dentro (que ignora esa altura),
+      dejando el marco del popup con el tamaño original y solo la
+      vista interna recortada. La causa raíz real:
+      `combobox-popup: 0` en el QSS del propio `QComboBox` (una
+      propiedad de Qt hecha justo para esto) fuerza el modo de popup
+      "clásico", el único que respeta `setMaxVisibleItems()`/
+      `setMaximumHeight()` de forma confiable con estilos propios -
+      verificado con una captura real del popup abierto de verdad
+      (`showPopup()` + `grab()`), no solo midiendo su altura.
 - [ ] **Checkpoint UI-4 (pendiente, el más grande): pantalla Baneo.**
       Grilla de personajes estilo selección de campeón de League of
       Legends (cara del personaje en un recuadro + nombre abajo, barra

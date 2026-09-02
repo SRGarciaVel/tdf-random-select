@@ -146,6 +146,16 @@ QComboBox::drop-down {{
     width: 22px;
 }}
 
+/* combobox-popup:0 fuerza el modo de popup "clasico" de Qt en vez del
+ * nativo - con un QSS propio en QAbstractItemView, el modo nativo a
+ * veces ignora la altura maxima real seteada en el codigo y deja un
+ * hueco en blanco arriba de la lista (bug real encontrado por Seba,
+ * ver tasks/lessons.md) - el modo clasico es el unico que respeta
+ * setMaxVisibleItems()/setMaximumHeight() de forma confiable. */
+QComboBox {{
+    combobox-popup: 0;
+}}
+
 QComboBox QAbstractItemView {{
     background-color: {BG_SURFACE};
     color: {TEXT_PRIMARY};
