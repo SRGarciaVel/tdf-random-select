@@ -8,6 +8,7 @@ from PyQt6.QtCore import QSize, Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtWidgets import (
     QComboBox,
+    QFrame,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
@@ -15,6 +16,7 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QSizePolicy,
     QToolButton,
     QVBoxLayout,
@@ -49,7 +51,7 @@ from control_panel.overlay_bridge import OverlayBridge
 from control_panel.theme import mark_as_primary_action
 
 CHARACTER_DISPLAY_NAMES = {entry["id"]: entry["display_name"] for entry in SF6_ROSTER}
-GRID_COLUMNS = 6
+GRID_COLUMNS = 8
 BAN_TIMER_MS = 30_000  # 30s por baneo (HUD) - parametro para poder acortarlo en tests
 
 # Mismos retratos chicos que ya usa el overlay (checkpoint UI-4, ver
@@ -115,7 +117,7 @@ class CharacterButton(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(3)
         layout.addWidget(self._icon_button, alignment=Qt.AlignmentFlag.AlignHCenter)
-        layout.addWidget(self._name_label)
+        layout.addWidget(self._name_label, alignment=Qt.AlignmentFlag.AlignHCenter)
         self.setLayout(layout)
 
     def click(self) -> None:
@@ -253,9 +255,28 @@ class BanningScreen(QWidget):
             )
             self._character_buttons[entry["id"]] = button
             grid.addWidget(button, index // GRID_COLUMNS, index % GRID_COLUMNS)
+
+        # La grilla tiene su propio scroll acotado (no toda la pantalla
+        # crece sin limite) - a pedido de Seba tras ver que la pestaña
+        # se iba de largo. GRID_COLUMNS subio de 6 a 8 (31 personajes
+        # entran en 4 filas en vez de 6), y ademas esto: si en algun
+        # monitor mas chico ni siquiera esas 4 filas entran completas,
+        # aparece scroll SOLO en la grilla, dejando el panel de CFN y
+        # los botones de accion (Bloquear, Randomizar, etc.) siempre
+        # visibles sin necesidad de bajar. Para ajustar cuanto se ve
+        # antes de necesitar scroll, cambiar el numero de
+        # setMaximumHeight() de abajo.
+        grid_container = QWidget()
+        grid_container.setLayout(grid)
+        grid_scroll = QScrollArea()
+        grid_scroll.setWidget(grid_container)
+        grid_scroll.setWidgetResizable(True)
+        grid_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        grid_scroll.setMaximumHeight(470)
+
         grid_box_layout = QVBoxLayout()
         grid_box_layout.addWidget(self._character_search)
-        grid_box_layout.addLayout(grid)
+        grid_box_layout.addWidget(grid_scroll)
         grid_box.setLayout(grid_box_layout)
 
         self._lock_in_button = QPushButton("Bloquear")

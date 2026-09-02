@@ -786,6 +786,20 @@ VS Code. Checkpoints en orden (cada pantalla se hace por separado):
          debajo del cuadro, no dentro del cuadro". Verificado con una
          captura real (`window.grab()`) confirmando que ya no hay
          superposición entre filas.
+         **Segunda ronda de ajuste, con retratos reales ya descargados**:
+         (1) el nombre no quedaba centrado bajo la cara - faltaba pasar
+         `alignment=Qt.AlignmentFlag.AlignHCenter` también al agregar el
+         `QLabel` al layout (`setAlignment(AlignCenter)` en el label
+         solo centra el TEXTO adentro de su propio ancho, no el label
+         entero dentro del espacio que le da el layout). (2) la pestaña
+         se iba de largo verticalmente con las 31 caras reales -
+         `GRID_COLUMNS` subió de 6 a 8 (31 personajes entran en 4 filas
+         en vez de 6), y la grilla quedó envuelta en su propio
+         `QScrollArea` con altura máxima acotada (`setMaximumHeight`) -
+         el panel de CFN y los botones de acción (Bloquear, Randomizar,
+         Completar reveal) quedan siempre visibles sin bajar, y si en
+         una pantalla más chica ni las 4 filas entran completas, el
+         scroll aparece SOLO ahí, no en toda la pestaña.
       2. **Panel de CFN de ambos jugadores**: rango/MR/personaje actual,
          reusando `player_profile_service.py` (checkpoint UI-2, mismo
          tracker que HUD-10) - consultado en threads de fondo por
