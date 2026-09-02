@@ -23,7 +23,10 @@ class MainWindow(QMainWindow):
     def __init__(self, session_factory: sessionmaker) -> None:
         super().__init__()
         self.setWindowTitle("TDF Random Select")
-        self.resize(720, 480)
+        # 720x480 quedo chico desde que Baneo creció (panel de CFN,
+        # grilla de personajes con retratos reales) - Seba lo vio real
+        # al abrir la app sobre OBS y quedar apretada (checkpoint UI-4).
+        self.resize(1050, 850)
 
         tabs = QTabWidget()
         tabs.addTab(PlayersScreen(session_factory), "Jugadores")

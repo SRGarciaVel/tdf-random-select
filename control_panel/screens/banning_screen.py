@@ -244,7 +244,14 @@ class BanningScreen(QWidget):
 
         self._character_search = QLineEdit()
         self._character_search.setPlaceholderText("Buscar personaje...")
+        self._character_search.setMaximumWidth(220)
         self._character_search.textChanged.connect(self._on_character_search_changed)
+        # Empujada a la derecha con un stretch adelante (estilo la
+        # referencia real de League of Legends que mando Seba) en vez de
+        # ocupar todo el ancho de la fila.
+        search_row = QHBoxLayout()
+        search_row.addStretch()
+        search_row.addWidget(self._character_search)
 
         grid_box = QGroupBox("Personajes (★ = fuerte del rival, ✕ = ya baneado)")
         grid = QGridLayout()
@@ -275,7 +282,7 @@ class BanningScreen(QWidget):
         grid_scroll.setMaximumHeight(470)
 
         grid_box_layout = QVBoxLayout()
-        grid_box_layout.addWidget(self._character_search)
+        grid_box_layout.addLayout(search_row)
         grid_box_layout.addWidget(grid_scroll)
         grid_box.setLayout(grid_box_layout)
 
@@ -298,18 +305,34 @@ class BanningScreen(QWidget):
         self._show_stats_button.clicked.connect(self._on_toggle_stats_clicked)
         self._stats_label = QLabel("")
 
+        # Ancho maximo + centrados - antes se estiraban de punta a punta
+        # de la ventana como barras (se veia horrible, a pedido de Seba
+        # tras verlo real sobre OBS).
+        ACTION_BUTTON_MAX_WIDTH = 320
+        for action_button in (
+            self._lock_in_button,
+            self._randomize_button,
+            self._complete_button,
+            self._show_stats_button,
+        ):
+            action_button.setMaximumWidth(ACTION_BUTTON_MAX_WIDTH)
+
         layout = QVBoxLayout()
         layout.addLayout(match_row)
         layout.addLayout(start_row)
         layout.addWidget(self._status_label)
         layout.addLayout(cfn_row)
         layout.addWidget(grid_box)
-        layout.addWidget(self._lock_in_button)
-        layout.addWidget(self._randomize_button)
-        layout.addWidget(self._results_label)
-        layout.addWidget(self._complete_button)
-        layout.addWidget(self._show_stats_button)
-        layout.addWidget(self._stats_label)
+        layout.addWidget(self._lock_in_button, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(
+            self._randomize_button, alignment=Qt.AlignmentFlag.AlignHCenter
+        )
+        layout.addWidget(self._results_label, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(self._complete_button, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(
+            self._show_stats_button, alignment=Qt.AlignmentFlag.AlignHCenter
+        )
+        layout.addWidget(self._stats_label, alignment=Qt.AlignmentFlag.AlignHCenter)
         self._obs_status_label = QLabel("")
         layout.addWidget(self._obs_status_label)
         self.setLayout(layout)

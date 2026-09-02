@@ -800,6 +800,16 @@ VS Code. Checkpoints en orden (cada pantalla se hace por separado):
          Completar reveal) quedan siempre visibles sin bajar, y si en
          una pantalla más chica ni las 4 filas entran completas, el
          scroll aparece SOLO ahí, no en toda la pestaña.
+         **Tercera ronda, viendo la app real superpuesta a OBS**: la
+         ventana abría en 720x480 (default del walking skeleton, nunca
+         se había tocado) - demasiado chico desde que Baneo creció.
+         Subido a 1050x850. Los botones de acción (Bloquear, Randomizar,
+         Completar reveal, Mostrar estadísticas) se estiraban de punta a
+         punta de la ventana como barras - ancho máximo fijo (320px) +
+         centrados. La barra de búsqueda pasó de ocupar toda la fila a
+         un ancho chico (220px) empujado a la derecha con un stretch
+         adelante, igual que en la referencia real de League of Legends
+         que Seba había mandado al principio de esta conversación.
       2. **Panel de CFN de ambos jugadores**: rango/MR/personaje actual,
          reusando `player_profile_service.py` (checkpoint UI-2, mismo
          tracker que HUD-10) - consultado en threads de fondo por
