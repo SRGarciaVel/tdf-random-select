@@ -632,16 +632,25 @@ export default function DraftOverlay({
         } as React.CSSProperties
       }
     >
-      {/* Logo de auspiciador/red social (checkpoint UX-2, ver
-       * ROADMAP.md) - convencion estandar de transmision: marca
-       * principal centrada (ver .center-label), auspiciador chico en
-       * una esquina. Solo se renderiza si hay uno configurado. */}
-      {broadcastSettings?.sponsor_logo_url && (
-        <img
-          className="hud-sponsor-logo"
-          src={broadcastSettings.sponsor_logo_url}
-          alt=""
-        />
+      {/* Logo del torneo arriba centrado (checkpoint acordado, ver
+       * ROADMAP.md) - glow + divisor fino en vez de un recuadro
+       * completo, para que se lea como marca/identidad y no como otra
+       * tarjeta de datos compitiendo con el panel central. El panel
+       * central ya tiene su propio logo chico junto al texto
+       * (.center-logo, sin tocar) - este es el segundo, mas grande y
+       * arriba de todo, la ubicacion principal acordada. */}
+      {broadcastSettings?.logo_url && (
+        <div className="hud-top-logo-wrapper">
+          <img
+            className="hud-top-logo"
+            src={broadcastSettings.logo_url}
+            alt=""
+            onError={(event) => {
+              event.currentTarget.style.display = "none";
+            }}
+          />
+          <div className="hud-top-logo-divider" />
+        </div>
       )}
       <AnimatePresence>
         {leftDramaticCharacter && (

@@ -87,10 +87,6 @@ def create_app(session_factory: sessionmaker | None = None) -> Flask:
             elif settings.custom_logo_filename:
                 logo_url = f"/branding/{settings.custom_logo_filename}"
 
-            sponsor_logo_url = None
-            if settings.sponsor_logo_filename:
-                sponsor_logo_url = f"/branding/{settings.sponsor_logo_filename}"
-
             return jsonify(
                 {
                     "tournament_label": settings.tournament_label,
@@ -98,7 +94,6 @@ def create_app(session_factory: sessionmaker | None = None) -> Flask:
                     "logo_url": logo_url,
                     "accent_color": settings.accent_color,
                     "panel_background_color": settings.panel_background_color,
-                    "sponsor_logo_url": sponsor_logo_url,
                 }
             )
 

@@ -29,4 +29,3 @@ class BroadcastPreset(Base):
         String, nullable=False, default="rgba(10, 5, 15, 0.35)"
     )
     ban_timer_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=30)
-    sponsor_logo_filename: Mapped[str | None] = mapped_column(String, nullable=True)

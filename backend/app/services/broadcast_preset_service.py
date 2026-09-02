@@ -35,7 +35,6 @@ def save_preset(session: Session, name: str) -> BroadcastPreset:
     preset.accent_color = current.accent_color
     preset.panel_background_color = current.panel_background_color
     preset.ban_timer_seconds = current.ban_timer_seconds
-    preset.sponsor_logo_filename = current.sponsor_logo_filename
     session.commit()
     return preset
 
@@ -56,7 +55,6 @@ def apply_preset(session: Session, preset_id: int) -> BroadcastSettings:
         preset.panel_background_color, "panel_background_color"
     )
     settings.ban_timer_seconds = preset.ban_timer_seconds
-    settings.sponsor_logo_filename = preset.sponsor_logo_filename
     session.commit()
     return settings
 

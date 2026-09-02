@@ -92,10 +92,3 @@ def test_update_ban_timer_seconds(session: Session) -> None:
 def test_update_rejects_ban_timer_too_short(session: Session) -> None:
     with pytest.raises(ValueError):
         update_broadcast_settings(session, "", "tdf", ban_timer_seconds=2)
-
-
-def test_update_sponsor_logo_filename(session: Session) -> None:
-    settings = update_broadcast_settings(
-        session, "", "tdf", sponsor_logo_filename="auspiciador.webp"
-    )
-    assert settings.sponsor_logo_filename == "auspiciador.webp"

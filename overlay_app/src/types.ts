@@ -38,7 +38,6 @@ export interface BroadcastSettings {
   logo_url: string | null;
   accent_color: string;
   panel_background_color: string;
-  sponsor_logo_url: string | null;
 }
 
 // Espejo del evento Socket.IO "ban_candidate_preview" (checkpoint HUD-4).

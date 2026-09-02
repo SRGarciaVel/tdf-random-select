@@ -57,7 +57,6 @@ class BroadcastSettingsScreen(QWidget):
         super().__init__()
         self._session_factory = session_factory
         self._pending_logo_filename: str | None = None
-        self._pending_sponsor_logo_filename: str | None = None
 
         # --- Nombre y logo del torneo ---
         self._label_input = QLineEdit()
@@ -116,20 +115,6 @@ class BroadcastSettingsScreen(QWidget):
         colors_form.addRow("Fondo de paneles", panel_bg_row)
         colors_box = QGroupBox("Colores del HUD")
         colors_box.setLayout(colors_form)
-
-        # --- Logo de auspiciador/red social (checkpoint UI-5) ---
-        self._sponsor_logo_file_label = QLabel("Sin logo de auspiciador cargado.")
-        self._sponsor_logo_pick_button = QPushButton(
-            icon("fa5s.image"), "Elegir logo de auspiciador..."
-        )
-        self._sponsor_logo_pick_button.clicked.connect(
-            self._on_pick_sponsor_logo_clicked
-        )
-        sponsor_form = QFormLayout()
-        sponsor_form.addRow(self._sponsor_logo_pick_button)
-        sponsor_form.addRow(self._sponsor_logo_file_label)
-        sponsor_box = QGroupBox("Logo de auspiciador (opcional)")
-        sponsor_box.setLayout(sponsor_form)
 
         # --- Timer de baneo (checkpoint UI-5) - antes era una constante
         # fija en el codigo (BAN_TIMER_MS en banning_screen.py), ahora
@@ -211,7 +196,6 @@ class BroadcastSettingsScreen(QWidget):
         layout = QVBoxLayout()
         layout.addWidget(name_box)
         layout.addWidget(colors_box)
-        layout.addWidget(sponsor_box)
         layout.addWidget(timer_box)
         layout.addWidget(preview_box)
         layout.addWidget(presets_box)
@@ -241,10 +225,6 @@ class BroadcastSettingsScreen(QWidget):
         if settings.custom_logo_filename:
             self._logo_file_label.setText(
                 f"Archivo actual: {settings.custom_logo_filename}"
-            )
-        if settings.sponsor_logo_filename:
-            self._sponsor_logo_file_label.setText(
-                f"Archivo actual: {settings.sponsor_logo_filename}"
             )
         self._accent_color = settings.accent_color
         self._panel_background_color = settings.panel_background_color
@@ -279,27 +259,6 @@ class BroadcastSettingsScreen(QWidget):
             f"Archivo elegido: {destination_filename} (falta Guardar)"
         )
         self._update_preview()
-
-    def _on_pick_sponsor_logo_clicked(self) -> None:
-        file_path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Elegir logo de auspiciador",
-            "",
-            "Imágenes (*.png *.webp *.jpg *.jpeg *.svg)",
-        )
-        if not file_path:
-            return
-
-        source = Path(file_path)
-        BRANDING_DIR.mkdir(parents=True, exist_ok=True)
-        destination_filename = f"sponsor-logo{source.suffix.lower()}"
-        destination = BRANDING_DIR / destination_filename
-        shutil.copyfile(source, destination)
-
-        self._pending_sponsor_logo_filename = destination_filename
-        self._sponsor_logo_file_label.setText(
-            f"Archivo elegido: {destination_filename} (falta Guardar)"
-        )
 
     def _on_pick_accent_color(self) -> None:
         color = QColorDialog.getColor(
@@ -402,7 +361,6 @@ class BroadcastSettingsScreen(QWidget):
         with self._session_factory() as session:
             apply_preset(session, preset_id)
         self._pending_logo_filename = None
-        self._pending_sponsor_logo_filename = None
         self._load_current_settings()
         self._status_label.setText(
             f"Preset '{self._preset_selector.currentText()}' aplicado."
@@ -434,14 +392,12 @@ class BroadcastSettingsScreen(QWidget):
                     accent_color=self._accent_color,
                     panel_background_color=self._panel_background_color,
                     ban_timer_seconds=self._ban_timer_input.value(),
-                    sponsor_logo_filename=self._pending_sponsor_logo_filename,
                 )
         except ValueError as exc:
             QMessageBox.warning(self, "No se pudo guardar", str(exc))
             return
 
         self._pending_logo_filename = None
-        self._pending_sponsor_logo_filename = None
         if show_status:
             self._status_label.setText("Guardado.")
         self._load_current_settings()

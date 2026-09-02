@@ -465,7 +465,7 @@
 }
 
 .center-vs {
-  font-size: clamp(1.6rem, 8vh, 3.4rem);
+  font-size: clamp(2.4rem, 11vh, 5rem);
   font-weight: 800;
   letter-spacing: 0.05em;
   color: #fff;
@@ -620,17 +620,38 @@
   opacity: 0.75;
 }
 
-/* --- Logo de auspiciador/red social (checkpoint UX-2) - esquina
- * inferior derecha, chico y discreto, convencion estandar de
- * transmision (la marca principal va centrada arriba, el auspiciador
- * en una esquina). */
-.hud-sponsor-logo {
+/* --- Logo del torneo, arriba centrado (checkpoint acordado, ver
+ * ROADMAP.md) - glow + divisor fino en vez de un recuadro completo,
+ * mismo lenguaje de "brillos" que ya usa el resto del HUD
+ * (.center-divider, .perimeter-light-path) en vez de una forma nueva. */
+.hud-top-logo-wrapper {
   position: absolute;
-  bottom: 14px;
-  right: 14px;
-  max-height: 40px;
-  max-width: 130px;
-  object-fit: contain;
-  opacity: 0.9;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
   z-index: 10;
+}
+
+.hud-top-logo {
+  max-height: 68px;
+  max-width: 240px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 10px var(--hud-accent-color))
+    drop-shadow(0 0 22px var(--hud-accent-color));
+}
+
+.hud-top-logo-divider {
+  width: 160px;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--hud-accent-color),
+    transparent
+  );
+  box-shadow: 0 0 8px var(--hud-accent-color);
 }

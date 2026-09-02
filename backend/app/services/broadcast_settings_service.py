@@ -41,7 +41,6 @@ def update_broadcast_settings(
     accent_color: str | None = None,
     panel_background_color: str | None = None,
     ban_timer_seconds: int | None = None,
-    sponsor_logo_filename: str | None = None,
 ) -> BroadcastSettings:
     if logo_choice not in VALID_LOGO_CHOICES:
         raise ValueError(
@@ -62,7 +61,5 @@ def update_broadcast_settings(
         )
     if ban_timer_seconds is not None:
         settings.ban_timer_seconds = ban_timer_seconds
-    if sponsor_logo_filename is not None:
-        settings.sponsor_logo_filename = sponsor_logo_filename
     session.commit()
     return settings

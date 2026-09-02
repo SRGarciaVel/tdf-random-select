@@ -38,8 +38,3 @@ class BroadcastSettings(Base):
     # forma de ajustarla sin tocar codigo. Segundos, no ms - mas facil
     # de mostrar/editar en la UI.
     ban_timer_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=30)
-    # Logo secundario opcional (auspiciador/red social) - mismo criterio
-    # que custom_logo_filename: nombre de archivo dentro de
-    # overlay_app/public/branding/, servido directo desde ahi, sin
-    # necesitar build (checkpoint UX-2).
-    sponsor_logo_filename: Mapped[str | None] = mapped_column(String, nullable=True)

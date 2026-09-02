@@ -32,7 +32,6 @@ const defaultBroadcastSettings: BroadcastSettings = {
   logo_url: null,
   accent_color: "#c400ff",
   panel_background_color: "rgba(10, 5, 15, 0.35)",
-  sponsor_logo_url: null,
 };
 
 describe("DraftOverlay (HUD)", () => {
@@ -588,26 +587,24 @@ describe("DraftOverlay (HUD)", () => {
     });
   });
 
-  describe("logo de auspiciador (checkpoint UX-2)", () => {
-    it("muestra el logo de auspiciador cuando esta configurado", () => {
+  describe("logo del torneo arriba centrado", () => {
+    it("muestra el logo arriba centrado cuando hay uno configurado", () => {
       render(
         <DraftOverlay
           matchState={baseState}
           roster={roster}
           broadcastSettings={{
             ...defaultBroadcastSettings,
-            sponsor_logo_url: "/branding/sponsor-logo.webp",
+            logo_url: "/branding/torneo-logo.webp",
           }}
         />,
       );
-      const sponsorLogo = document.querySelector(".hud-sponsor-logo");
-      expect(sponsorLogo).not.toBeNull();
-      expect(sponsorLogo?.getAttribute("src")).toBe(
-        "/branding/sponsor-logo.webp",
-      );
+      const topLogo = document.querySelector(".hud-top-logo");
+      expect(topLogo).not.toBeNull();
+      expect(topLogo?.getAttribute("src")).toBe("/branding/torneo-logo.webp");
     });
 
-    it("no muestra nada si no hay logo de auspiciador configurado", () => {
+    it("no muestra nada arriba si no hay logo configurado", () => {
       render(
         <DraftOverlay
           matchState={baseState}
@@ -615,7 +612,7 @@ describe("DraftOverlay (HUD)", () => {
           broadcastSettings={defaultBroadcastSettings}
         />,
       );
-      expect(document.querySelector(".hud-sponsor-logo")).toBeNull();
+      expect(document.querySelector(".hud-top-logo")).toBeNull();
     });
   });
 });

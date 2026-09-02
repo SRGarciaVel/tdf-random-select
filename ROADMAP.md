@@ -991,6 +991,45 @@ de desarrollo de Seba.
 
   87 tests de Python + 33 del overlay (2 nuevos) siguen pasando.
 
+## Fase 4.8 — Aclaraciones y ajustes tras probar con datos reales (checkpoint UX-3)
+
+Seba probó un draft real con 5 baneos por jugador y encontró resultados
+que quiso confirmar antes de seguir - buena práctica, dos resultaron
+ser diseño correcto (no bugs) y dos eran pendientes reales.
+
+- [x] **Confirmado, no es un bug**: randomizar dio "Dhalsim" para los dos
+      jugadores tras 5 baneos cada uno. `roll_random()` hace un sorteo
+      independiente por jugador contra el mismo pool restante, mirror
+      match permitido a propósito (documentado en `SPECS.md` §4, con
+      test dedicado). Con 21 personajes en el pool tras 10 baneos
+      totales, la chance de que coincida es ~4.8% - coincidencia real,
+      no una falla del sorteo.
+- [x] **Logo del torneo arriba centrado, construido de verdad** - se
+      había acordado la idea (glow + divisor fino, mismo lenguaje
+      visual que `.center-divider`) pero nunca se había llegado a
+      implementar, se quedó solo en la conversación. El logo chico que
+      ya vivía junto al texto del panel inferior (`.center-logo`) se
+      dejó como estaba, sin tocar - este es un segundo logo, más
+      grande, en la ubicación principal acordada. 2 tests nuevos.
+- [x] **VS agrandado de verdad** - el tope pasó de `3.4rem` a `5rem`
+      (`clamp(2.4rem, 11vh, 5rem)`), para que tenga el impacto visual
+      que se buscaba, no solo un ajuste chico.
+- [x] **Logo de auspiciador sacado por completo** - decisión de Seba:
+      sin auspiciadores reales todavía, y si aparece uno en el futuro
+      es mejor configurarlo directo como fuente en la escena de OBS que
+      mantener esta función en la app. Sacado del modelo, los dos
+      servicios, el endpoint, la pantalla de Transmisión, el overlay y
+      los tests (la columna vieja en la base de Seba queda ahí sin
+      usar, no vale la pena una migración de `DROP COLUMN` para esto).
+
+  86 tests de Python (uno menos, el del sponsor sacado) + 33 del
+  overlay (2 sacados del sponsor, 2 nuevos del logo de arriba) - build
+  limpio confirmado, pero **sin captura visual real**: este sandbox no
+  tiene navegador headless disponible para el lado de React (a
+  diferencia del lado de Qt, donde sí se pudo verificar con
+  `window.grab()`) - la confirmación visual de este checkpoint quedó
+  pendiente de que Seba la vea en OBS.
+
 ## Fase 5 — Empaquetado
 
 - [ ] `.exe` con PyInstaller (`--onefile`), estáticos de `overlay_app`
