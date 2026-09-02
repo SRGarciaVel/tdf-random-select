@@ -742,6 +742,13 @@ VS Code. Checkpoints en orden (cada pantalla se hace por separado):
       lista larga completa, ahora usa su propia barra de scroll interna
       (`QListWidget` ya la trae, solo hacía falta ponerle un techo).
       6 tests nuevos del servicio + 5 de la UI real - 71 en total.
+      **Fix aparte tras la primera prueba real**: el scroll que faltaba
+      no era el de la lista de ya agregados (ese ya tenía el límite de
+      alto) sino el del propio desplegable del combo para *agregar* un
+      personaje nuevo - con 31 personajes se abría sin límite,
+      extendiéndose fuera de la ventana. `setMaxVisibleItems(10)` en
+      `_character_selector` le pone techo y Qt agrega scroll propio
+      para el resto.
 - [ ] **Checkpoint UI-4 (pendiente, el más grande): pantalla Baneo.**
       Grilla de personajes estilo selección de campeón de League of
       Legends (cara del personaje en un recuadro + nombre abajo, barra

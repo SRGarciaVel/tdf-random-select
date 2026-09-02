@@ -49,6 +49,13 @@ class PlayerTagsPanel(QWidget):
         self._player_id: int | None = None
 
         self._character_selector = QComboBox()
+        # El desplegable de este combo (31 personajes) se abria sin
+        # limite, extendiendose fuera de la ventana en vez de mostrar
+        # una barra de scroll propia - Seba lo encontro real al probar
+        # (checkpoint UI-3, distinto del QListWidget de ya agregados,
+        # que ya tenia su propio fix de alto). setMaxVisibleItems() le
+        # pone techo al popup y Qt agrega scroll propio para el resto.
+        self._character_selector.setMaxVisibleItems(10)
         for entry in SF6_ROSTER:
             self._character_selector.addItem(entry["display_name"], entry["id"])
         add_button = QPushButton("Agregar")
