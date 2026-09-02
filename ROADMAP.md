@@ -943,6 +943,54 @@ eso.
   de lógica, todos de UI) - verificado también con capturas reales
   (`window.grab()`) de Baneo, Setup y Jugadores.
 
+## Fase 4.7 — Fix crítico antes de empaquetar (checkpoint UX-2)
+
+Revisando el checkpoint anterior, Seba preguntó algo que expuso un
+problema real y bloqueante: "¿cómo hace el CEO/streamer para correr
+`npm run build` en el `.exe` empaquetado, si no tiene Node ni una
+terminal?". Buena pregunta - la respuesta encontrada fue que el diseño
+original tenía un supuesto que dejaba de sostenerse fuera del entorno
+de desarrollo de Seba.
+
+- [x] **Causa raíz encontrada y confirmada empíricamente** (no
+      solo leída en el código): Flask sirve el overlay desde
+      `overlay_app/build/` (el output de Vite), no desde
+      `overlay_app/public/` (donde se guardan los retratos y logos
+      nuevos). Se confirmó corriendo un build real con un archivo de
+      prueba: Vite copia el contenido de `public/` a `build/` tal cual,
+      sin transformar nada - o sea que el "build" para estos archivos
+      nunca hacía falta técnicamente, era solo una consecuencia de
+      *dónde* Flask buscaba los archivos.
+- [x] **Fix real, no un parche**: tres rutas nuevas en Flask
+      (`/portraits/<archivo>`, `/portraits-large/<archivo>`,
+      `/branding/<archivo>`) que sirven directo desde
+      `overlay_app/public/`, sin pasar por `build/` en absoluto. De acá
+      en más, ni los retratos nuevos (`download_portraits.py`) ni los
+      logos elegidos desde el panel necesitan ningún build - copiar el
+      archivo (que es exactamente lo que el código ya hacía) alcanza
+      solo. Verificado con un test real: se agregan archivos SOLO en
+      `public/` (sin correr ningún build) y se confirma que Flask los
+      sirve igual.
+- [x] Sacada la nota vieja ("hay que correr npm run build...") de la
+      pantalla de Transmisión, y reemplazada por la real: si el HUD ya
+      está abierto en OBS, hay que actualizar esa fuente de navegador
+      para ver un cambio (el overlay solo pide `/api/broadcast-settings`
+      una vez al cargar, no en vivo - mismo criterio ya documentado en
+      `tasks/lessons.md` sobre el cache de OBS). Comentarios
+      desactualizados en el modelo y en `broadcast_settings_screen.py`
+      corregidos también.
+- [x] **Logo de auspiciador conectado al overlay de verdad** - existía
+      la configuración (subir el archivo, guardarlo) desde el
+      checkpoint UI-5, pero no se renderizaba en ningún lado, gap real
+      que Seba encontró preguntando "¿dónde se ve?". Ahora aparece en
+      la esquina inferior derecha del HUD (convención estándar de
+      transmisión: marca principal centrada, auspiciador en una
+      esquina, chico y discreto) - `sponsor_logo_url` sumado al
+      endpoint `/api/broadcast-settings` y al tipo `BroadcastSettings`
+      del overlay. 2 tests nuevos (con logo configurado / sin logo).
+
+  87 tests de Python + 33 del overlay (2 nuevos) siguen pasando.
+
 ## Fase 5 — Empaquetado
 
 - [ ] `.exe` con PyInstaller (`--onefile`), estáticos de `overlay_app`

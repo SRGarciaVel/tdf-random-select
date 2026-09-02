@@ -632,6 +632,17 @@ export default function DraftOverlay({
         } as React.CSSProperties
       }
     >
+      {/* Logo de auspiciador/red social (checkpoint UX-2, ver
+       * ROADMAP.md) - convencion estandar de transmision: marca
+       * principal centrada (ver .center-label), auspiciador chico en
+       * una esquina. Solo se renderiza si hay uno configurado. */}
+      {broadcastSettings?.sponsor_logo_url && (
+        <img
+          className="hud-sponsor-logo"
+          src={broadcastSettings.sponsor_logo_url}
+          alt=""
+        />
+      )}
       <AnimatePresence>
         {leftDramaticCharacter && (
           <DramaticCharacterPanel

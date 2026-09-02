@@ -36,9 +36,9 @@ from backend.app.services.broadcast_settings_service import (
 )
 from control_panel.theme import icon, icon_danger, mark_as_primary_action
 
-# Mismo criterio que los retratos (download_portraits.py): los assets
-# viven en overlay_app/public/, y requieren un "npm run build" despues
-# para que el overlay los sirva de verdad.
+# Se sirve directo desde overlay_app/public/branding/ via Flask (ver
+# backend/app/__init__.py) - nunca necesita "npm run build" (fix real,
+# checkpoint UX-2, ver ROADMAP.md).
 BRANDING_DIR = (
     Path(__file__).resolve().parents[2] / "overlay_app" / "public" / "branding"
 )
@@ -219,8 +219,9 @@ class BroadcastSettingsScreen(QWidget):
         layout.addWidget(self._status_label)
         layout.addWidget(
             QLabel(
-                "Nota: después de cambiar un logo hay que correr\n"
-                "'npm run build' en overlay_app para que se vea en el HUD."
+                "Nota: si ya tenés el HUD abierto en OBS, hace falta "
+                "actualizar esa fuente de navegador para ver los cambios\n"
+                "(clic derecho sobre la fuente → Actualizar)."
             )
         )
         layout.addWidget(checklist_box)

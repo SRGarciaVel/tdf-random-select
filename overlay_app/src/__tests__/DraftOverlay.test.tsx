@@ -32,6 +32,7 @@ const defaultBroadcastSettings: BroadcastSettings = {
   logo_url: null,
   accent_color: "#c400ff",
   panel_background_color: "rgba(10, 5, 15, 0.35)",
+  sponsor_logo_url: null,
 };
 
 describe("DraftOverlay (HUD)", () => {
@@ -584,6 +585,37 @@ describe("DraftOverlay (HUD)", () => {
       expect(hudRoot.style.getPropertyValue("--hud-accent-color")).toBe(
         "#c400ff",
       );
+    });
+  });
+
+  describe("logo de auspiciador (checkpoint UX-2)", () => {
+    it("muestra el logo de auspiciador cuando esta configurado", () => {
+      render(
+        <DraftOverlay
+          matchState={baseState}
+          roster={roster}
+          broadcastSettings={{
+            ...defaultBroadcastSettings,
+            sponsor_logo_url: "/branding/sponsor-logo.webp",
+          }}
+        />,
+      );
+      const sponsorLogo = document.querySelector(".hud-sponsor-logo");
+      expect(sponsorLogo).not.toBeNull();
+      expect(sponsorLogo?.getAttribute("src")).toBe(
+        "/branding/sponsor-logo.webp",
+      );
+    });
+
+    it("no muestra nada si no hay logo de auspiciador configurado", () => {
+      render(
+        <DraftOverlay
+          matchState={baseState}
+          roster={roster}
+          broadcastSettings={defaultBroadcastSettings}
+        />,
+      );
+      expect(document.querySelector(".hud-sponsor-logo")).toBeNull();
     });
   });
 });

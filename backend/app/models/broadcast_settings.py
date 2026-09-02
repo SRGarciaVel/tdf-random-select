@@ -21,9 +21,10 @@ class BroadcastSettings(Base):
     # "tdf" (logo por defecto del club) | "torneo" (logo custom subido)
     logo_choice: Mapped[str] = mapped_column(String, nullable=False, default="tdf")
     # Nombre de archivo dentro de overlay_app/public/branding/ - solo se
-    # usa cuando logo_choice == "torneo". Requiere un "npm run build"
-    # despues de cambiarlo para que el overlay lo sirva (mismo criterio
-    # que los retratos de download_portraits.py).
+    # usa cuando logo_choice == "torneo". Se sirve directo desde ahi
+    # (Flask, ver backend/app/__init__.py) - nunca necesita "npm run
+    # build" (fix real, checkpoint UX-2: antes sí lo requería, pero eso
+    # era incompatible con el .exe empaquetado, que no tiene Node/npm).
     custom_logo_filename: Mapped[str | None] = mapped_column(String, nullable=True)
     # Personalizacion visual del HUD (checkpoint HUD-5) - colores CSS
     # validos (hex u otro formato CSS), aplicados via custom properties
@@ -39,5 +40,6 @@ class BroadcastSettings(Base):
     ban_timer_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=30)
     # Logo secundario opcional (auspiciador/red social) - mismo criterio
     # que custom_logo_filename: nombre de archivo dentro de
-    # overlay_app/public/branding/, requiere "npm run build" despues.
+    # overlay_app/public/branding/, servido directo desde ahi, sin
+    # necesitar build (checkpoint UX-2).
     sponsor_logo_filename: Mapped[str | None] = mapped_column(String, nullable=True)
