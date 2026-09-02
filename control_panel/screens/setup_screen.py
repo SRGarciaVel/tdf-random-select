@@ -18,6 +18,8 @@ from PyQt6.QtWidgets import (
 )
 from sqlalchemy.orm import sessionmaker
 
+from control_panel.theme import mark_as_primary_action
+
 from backend.app.data.sf6_roster import SF6_ROSTER
 from backend.app.services.character_tag_service import (
     add_character_tag,
@@ -159,6 +161,7 @@ class SetupScreen(QWidget):
 
         create_button = QPushButton("Crear match")
         create_button.clicked.connect(self._on_create_match_clicked)
+        mark_as_primary_action(create_button)
         self._result_label = QLabel("")
 
         layout = QVBoxLayout()

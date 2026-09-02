@@ -12,6 +12,8 @@ from PyQt6.QtWidgets import (
 )
 from sqlalchemy.orm import sessionmaker
 
+from control_panel.theme import mark_as_primary_action
+
 from backend.app.services.obs_settings_service import (
     get_obs_settings,
     update_obs_settings,
@@ -49,6 +51,7 @@ class ObsSettingsScreen(QWidget):
 
         save_button = QPushButton("Guardar")
         save_button.clicked.connect(self._on_save_clicked)
+        mark_as_primary_action(save_button)
         self._save_status_label = QLabel("")
 
         form = QFormLayout()

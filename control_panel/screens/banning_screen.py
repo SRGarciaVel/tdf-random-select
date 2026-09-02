@@ -34,6 +34,7 @@ from backend.app.services.obs_service import ObsConnectionError, ObsService
 from backend.app.services.obs_settings_service import get_obs_settings
 from backend.app.services.player_service import get_player
 from control_panel.overlay_bridge import OverlayBridge
+from control_panel.theme import mark_as_primary_action
 
 CHARACTER_DISPLAY_NAMES = {entry["id"]: entry["display_name"] for entry in SF6_ROSTER}
 GRID_COLUMNS = 6
@@ -94,6 +95,7 @@ class BanningScreen(QWidget):
         self._first_banner_selector = QComboBox()
         self._start_button = QPushButton("Iniciar baneo")
         self._start_button.clicked.connect(self._on_start_banning_clicked)
+        mark_as_primary_action(self._start_button)
         start_row = QHBoxLayout()
         start_row.addWidget(QLabel("Banea primero:"))
         start_row.addWidget(self._first_banner_selector)
@@ -115,12 +117,14 @@ class BanningScreen(QWidget):
         self._lock_in_button = QPushButton("Bloquear")
         self._lock_in_button.setEnabled(False)
         self._lock_in_button.clicked.connect(self._on_lock_in_clicked)
+        mark_as_primary_action(self._lock_in_button)
 
         self._randomize_button = QPushButton("Randomizar")
         self._randomize_button.clicked.connect(self._on_randomize_clicked)
         self._results_label = QLabel("")
         self._complete_button = QPushButton("Completar reveal")
         self._complete_button.clicked.connect(self._on_complete_clicked)
+        mark_as_primary_action(self._complete_button)
 
         # Estadisticas de CFN del ultimo baneo confirmado (checkpoint
         # HUD-10) - deshabilitado hasta que haya al menos un baneo real.

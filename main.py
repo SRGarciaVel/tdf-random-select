@@ -11,6 +11,7 @@ from backend.app import create_app, socketio
 from backend.app.models import get_engine, get_session_factory, init_db
 from backend.app.services.character_stats_service import warm_up_tdf_edeportes
 from control_panel.main_window import MainWindow
+from control_panel.theme import apply_theme
 
 BACKEND_HOST = "localhost"
 BACKEND_PORT = 5001
@@ -55,6 +56,7 @@ def main() -> int:
     backend_thread.start()
 
     app = QApplication(sys.argv)
+    apply_theme(app)
     loop = QEventLoop(app)
     asyncio.set_event_loop(loop)
 

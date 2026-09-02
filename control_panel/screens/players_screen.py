@@ -16,6 +16,7 @@ from PyQt6.QtWidgets import (
 from sqlalchemy.orm import sessionmaker
 
 from backend.app.services.player_service import add_player, delete_player, list_players
+from control_panel.theme import mark_as_primary_action
 
 
 class PlayersScreen(QWidget):
@@ -32,6 +33,7 @@ class PlayersScreen(QWidget):
         self._cfn_input.setPlaceholderText("CFN ID (opcional)")
         add_button = QPushButton("Agregar jugador")
         add_button.clicked.connect(self._on_add_clicked)
+        mark_as_primary_action(add_button)
 
         form_row = QHBoxLayout()
         form_row.addWidget(self._name_input)

@@ -678,6 +678,63 @@ diseño acordado.
       7 tests nuevos del servicio (`obs_settings_service`, contra
       SQLite real) - 58 en total en el backend.
 
+## Fase 4.5 — Reforma de UI del panel de control
+
+Con el HUD y la automatización de OBS ya cerrados, Seba pidió una pasada
+de diseño sobre el panel de control en sí (PyQt6) - hoy usa el estilo
+gris genérico de Qt sin ningún tema propio. Acordado en el chat antes de
+programar: tema oscuro con identidad de TDF en vez de perseguir el
+Fluent Design nativo de Windows 11 (que requeriría una librería de
+terceros) - mismo criterio que usan apps profesionales como Discord o
+VS Code. Checkpoints en orden (cada pantalla se hace por separado):
+
+- [x] **Checkpoint UI-1: tema oscuro global.** `control_panel/theme.py`
+      nuevo con la hoja de estilo QSS completa (paleta morado/magenta,
+      misma familia que el color de acento por defecto del HUD, pero
+      fija - el tema del panel es una decisión del staff, no algo
+      atado a lo que el CEO configure en Transmisión para el público).
+      Cubre botones, pestañas, campos de texto, tablas, checkboxes,
+      scrollbars finos, menús contextuales y tooltips. Fuente Segoe UI
+      (la tipografía nativa de Windows) con fallback automático de Qt
+      si no está instalada. `mark_as_primary_action()` marca el botón
+      principal de cada pantalla (Agregar jugador, Crear match, Iniciar
+      baneo, Bloquear, Completar reveal, Guardar) para que se destaque
+      con el color de acento - máximo un botón así por pantalla,
+      mismo criterio de "una sola acción principal" que se usó también
+      en el HUD. Verificado con capturas reales generadas en el propio
+      sandbox (`window.grab()` en modo offscreen) - no solo compilación,
+      se vio el resultado real antes de entregarlo. 58 tests de fondo
+      siguen pasando igual, confirmando que el tema no rompió ninguna
+      interacción.
+- [ ] **Checkpoint UI-2 (pendiente): pantalla Jugadores.** Sacar la
+      columna ID (no le sirve a nadie verla), clic derecho con
+      renombrar/copiar, y mostrar más info de CFN en la lista (rango/MR
+      actual, quizás el personaje más jugado) aprovechando el tracker
+      que ya está conectado.
+- [ ] **Checkpoint UI-3 (pendiente): pantalla Setup.** Poder eliminar un
+      torneo (hoy solo se puede crear), y arreglar el scroll de
+      "personajes fuertes" (hoy hay que agrandar toda la ventana para
+      ver la lista completa si es larga).
+- [ ] **Checkpoint UI-4 (pendiente, el más grande): pantalla Baneo.**
+      Grilla de personajes estilo selección de campeón de League of
+      Legends (cara del personaje en un recuadro + nombre abajo, barra
+      de búsqueda, insignia de estrella para "personaje fuerte del
+      rival" en vez de texto), panel de CFN de ambos jugadores más
+      completo y visible (campeones más fuertes, win-rate, MR), y poder
+      eliminar partidas - individual Y con un botón de limpieza masiva
+      (Seba ya acumuló 28 partidas de prueba).
+- [ ] **Checkpoint UI-5 (pendiente): pantalla Transmisión, repensada.**
+      Hoy está subutilizada (solo nombre/logo/colores, poco uso real).
+      Direcciones acordadas para explorar, las 4 juntas:
+      1. Vista previa en vivo del HUD dentro del panel (mini-render que
+         se actualiza mientras se tocan los campos).
+      2. Presets guardados (combos completos con nombre, para tener
+         listo un preset armado con anticipación).
+      3. Espacio para logos de auspiciadores/redes.
+      4. Un checklist "antes de salir al aire" centralizando cosas que
+         hoy viven sueltas en otras pestañas (segundos del timer de
+         baneo, comportamiento al agotarse, etc.).
+
 ## Fase 5 — Empaquetado
 
 - [ ] `.exe` con PyInstaller (`--onefile`), estáticos de `overlay_app`
