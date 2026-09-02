@@ -726,10 +726,22 @@ VS Code. Checkpoints en orden (cada pantalla se hace por separado):
       (`window.grab()`), no solo tests. 15 tests nuevos (6 de
       `update_player`, 4 de `player_profile_service`, 5 de la UI real
       con `fetch_player_profile` mockeado) - 68 en total.
-- [ ] **Checkpoint UI-3 (pendiente): pantalla Setup.** Poder eliminar un
-      torneo (hoy solo se puede crear), y arreglar el scroll de
-      "personajes fuertes" (hoy hay que agrandar toda la ventana para
-      ver la lista completa si es larga).
+- [x] **Checkpoint UI-3: pantalla Setup.** Botón "Eliminar torneo" junto
+      al selector (deshabilitado cuando está seleccionado "crear
+      nuevo"), con confirmación que muestra cuántas partidas se van a
+      borrar junto con el torneo. `Tournament.matches` no tenía
+      `cascade="all, delete-orphan"` (aunque `Match.bans`/`Match.results`
+      sí) - sin eso, borrar un torneo con partidas hubiera reventado con
+      un error de integridad referencial. Agregado el cascade completo
+      y `delete_tournament()` nuevo en `tournament_service.py`,
+      verificado con un test real que arma un match con un baneo de
+      verdad (`DraftService`) y confirma que `MatchBan` también
+      desaparece al borrar el torneo, no solo el torneo mismo. Lista de
+      "personajes fuertes" con `setMaximumHeight(140)` - antes crecía
+      sin límite y había que agrandar toda la ventana para ver una
+      lista larga completa, ahora usa su propia barra de scroll interna
+      (`QListWidget` ya la trae, solo hacía falta ponerle un techo).
+      6 tests nuevos del servicio + 5 de la UI real - 71 en total.
 - [ ] **Checkpoint UI-4 (pendiente, el más grande): pantalla Baneo.**
       Grilla de personajes estilo selección de campeón de League of
       Legends (cara del personaje en un recuadro + nombre abajo, barra

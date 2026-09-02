@@ -21,7 +21,13 @@ class Tournament(Base):
         String, nullable=False, default="auto_ban"
     )
 
-    matches: Mapped[list[Match]] = relationship(back_populates="tournament")
+    # cascade="all, delete-orphan": eliminar un torneo elimina tambien
+    # sus matches (checkpoint UI-3, ver ROADMAP.md) - Match.bans y
+    # Match.results ya cascadeaban solos, esto cierra la cadena completa
+    # sin necesitar borrar cada nivel a mano.
+    matches: Mapped[list[Match]] = relationship(
+        back_populates="tournament", cascade="all, delete-orphan"
+    )
 
 
 class Match(Base):

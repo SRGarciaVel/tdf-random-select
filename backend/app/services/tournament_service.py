@@ -32,3 +32,16 @@ def create_tournament(
     session.add(tournament)
     session.commit()
     return tournament
+
+
+def delete_tournament(session: Session, tournament_id: int) -> None:
+    """Elimina un torneo y TODOS sus matches (checkpoint UI-3, ver
+    ROADMAP.md) - pensado para limpiar torneos de prueba o corregir un
+    nombre mal puesto. Cascada real via Tournament.matches (que a su vez
+    cascadea a MatchBan/MatchResult), no hace falta borrar nivel por
+    nivel a mano. No hace nada si el torneo ya no existe (mismo
+    criterio que delete_player)."""
+    tournament = session.get(Tournament, tournament_id)
+    if tournament is not None:
+        session.delete(tournament)
+        session.commit()

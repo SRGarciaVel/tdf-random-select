@@ -21,6 +21,7 @@ from sqlalchemy.orm import sessionmaker
 from control_panel.theme import mark_as_primary_action
 
 from backend.app.data.sf6_roster import SF6_ROSTER
+from backend.app.models import Tournament
 from backend.app.services.character_tag_service import (
     add_character_tag,
     delete_character_tag,
@@ -28,7 +29,11 @@ from backend.app.services.character_tag_service import (
 )
 from backend.app.services.draft_service import DraftService
 from backend.app.services.player_service import list_players
-from backend.app.services.tournament_service import create_tournament, list_tournaments
+from backend.app.services.tournament_service import (
+    create_tournament,
+    delete_tournament,
+    list_tournaments,
+)
 
 # Valor centinela en el QComboBox de torneos para la opcion "crear nuevo".
 NEW_TOURNAMENT_SENTINEL = "__new__"
@@ -55,6 +60,12 @@ class PlayerTagsPanel(QWidget):
 
         self._tags_list = QListWidget()
         self._tags_list.itemDoubleClicked.connect(self._on_remove_clicked)
+        # Antes esta lista crecia sin limite y habia que agrandar toda
+        # la ventana para ver una lista larga completa - con un maximo
+        # fijo, QListWidget muestra su propia barra de scroll interna en
+        # vez de empujar el resto del layout (checkpoint UI-3, a pedido
+        # de Seba).
+        self._tags_list.setMaximumHeight(140)
 
         layout = QVBoxLayout()
         layout.addWidget(
@@ -120,6 +131,10 @@ class SetupScreen(QWidget):
         self._tournament_selector.currentIndexChanged.connect(
             self._on_tournament_selection_changed
         )
+        self._delete_tournament_button = QPushButton("Eliminar torneo")
+        self._delete_tournament_button.clicked.connect(
+            self._on_delete_tournament_clicked
+        )
         self._new_tournament_name = QLineEdit()
         self._new_tournament_name.setPlaceholderText("Nombre del torneo nuevo")
         self._new_tournament_bans = QSpinBox()
@@ -129,8 +144,12 @@ class SetupScreen(QWidget):
         self._new_tournament_timeout_behavior.addItem("Banear al azar", "auto_ban")
         self._new_tournament_timeout_behavior.addItem("Saltar el turno", "skip")
 
+        tournament_selector_row = QHBoxLayout()
+        tournament_selector_row.addWidget(self._tournament_selector)
+        tournament_selector_row.addWidget(self._delete_tournament_button)
+
         tournament_form = QFormLayout()
-        tournament_form.addRow("Torneo", self._tournament_selector)
+        tournament_form.addRow("Torneo", tournament_selector_row)
         tournament_form.addRow("Nombre torneo nuevo", self._new_tournament_name)
         tournament_form.addRow("Baneos por jugador", self._new_tournament_bans)
         tournament_form.addRow(
@@ -194,6 +213,27 @@ class SetupScreen(QWidget):
         self._new_tournament_name.setEnabled(is_new)
         self._new_tournament_bans.setEnabled(is_new)
         self._new_tournament_timeout_behavior.setEnabled(is_new)
+        self._delete_tournament_button.setEnabled(not is_new)
+
+    def _on_delete_tournament_clicked(self) -> None:
+        tournament_id = self._tournament_selector.currentData()
+        if tournament_id == NEW_TOURNAMENT_SENTINEL or tournament_id is None:
+            return
+        tournament_name = self._tournament_selector.currentText()
+        with self._session_factory() as session:
+            match_count = len(session.get(Tournament, tournament_id).matches)
+        confirm = QMessageBox.question(
+            self,
+            "Eliminar torneo",
+            f"¿Eliminar '{tournament_name}'? Esto borra también sus "
+            f"{match_count} partida(s) (baneos y resultados incluidos). "
+            "Esta acción no se puede deshacer.",
+        )
+        if confirm != QMessageBox.StandardButton.Yes:
+            return
+        with self._session_factory() as session:
+            delete_tournament(session, tournament_id)
+        self._reload_tournaments()
 
     def _reload_players(self) -> None:
         with self._session_factory() as session:
