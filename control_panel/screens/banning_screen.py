@@ -30,6 +30,8 @@ from backend.app.services.draft_service import (
     build_match_state_payload,
     list_open_matches,
 )
+from backend.app.services.obs_service import ObsConnectionError, ObsService
+from backend.app.services.obs_settings_service import get_obs_settings
 from backend.app.services.player_service import get_player
 from control_panel.overlay_bridge import OverlayBridge
 
@@ -76,6 +78,10 @@ class BanningScreen(QWidget):
         # (checkpoint HUD-10) - toggle manual, nunca automatico.
         self._stats_visible = False
         self._character_stats_fetched.connect(self._on_character_stats_fetched)
+        # Se crea al arrancar el baneo, se reusa para volver a la escena
+        # original al completar el reveal (Fase 4, ver ROADMAP.md) - la
+        # instancia guarda la escena previa internamente.
+        self._obs: ObsService | None = None
 
         self._match_selector = QComboBox()
         self._match_selector.currentIndexChanged.connect(self._on_match_selected)
@@ -134,6 +140,8 @@ class BanningScreen(QWidget):
         layout.addWidget(self._complete_button)
         layout.addWidget(self._show_stats_button)
         layout.addWidget(self._stats_label)
+        self._obs_status_label = QLabel("")
+        layout.addWidget(self._obs_status_label)
         self.setLayout(layout)
 
         self._reload_matches()
@@ -289,7 +297,50 @@ class BanningScreen(QWidget):
         except DraftError as exc:
             QMessageBox.warning(self, "No se pudo iniciar el baneo", str(exc))
             return
+        self._switch_to_draft_scene()
         self._reload_matches()
+
+    def _switch_to_draft_scene(self) -> None:
+        """Guarda la escena activa de OBS y cambia a la escena de baneo
+        configurada en la pestaña "OBS" (Fase 4, ver ROADMAP.md). Si OBS
+        no está prendido o no hay escena configurada, no bloquea nada -
+        el draft sigue funcionando igual (modo degradado, ver
+        CODESTYLE.md)."""
+        with self._session_factory() as session:
+            obs_settings = get_obs_settings(session)
+        if not obs_settings.draft_scene_name:
+            return
+        self._obs = ObsService(
+            host=obs_settings.host,
+            port=obs_settings.port,
+            password=obs_settings.password or "",
+        )
+        try:
+            self._obs.connect()
+            self._obs.switch_to_draft_scene(obs_settings.draft_scene_name)
+            self._obs_status_label.setText(
+                f"OBS: cambiado a '{obs_settings.draft_scene_name}'."
+            )
+        except ObsConnectionError as exc:
+            self._obs_status_label.setText(
+                f"OBS no disponible (el draft sigue igual): {exc}"
+            )
+
+    def _restore_obs_scene(self) -> None:
+        """Vuelve a la escena que estaba activa antes de _switch_to_draft_scene
+        - mismo modo degradado, un fallo acá no debe impedir terminar el
+        reveal."""
+        if self._obs is None:
+            return
+        try:
+            self._obs.restore_previous_scene()
+            self._obs_status_label.setText("OBS: escena original restaurada.")
+        except ObsConnectionError as exc:
+            self._obs_status_label.setText(
+                f"No se pudo restaurar la escena de OBS: {exc}"
+            )
+        finally:
+            self._obs = None
 
     def _on_character_selected(self, character_id: str) -> None:
         if self._match_id is None or self._current_turn_key is None:
@@ -361,6 +412,7 @@ class BanningScreen(QWidget):
         # seleccionado - sin este emit explicito, el overlay nunca ve el
         # estado final, solo ve el match desaparecer (ver tasks/lessons.md).
         self._overlay_bridge.emit_match_state(final_payload)
+        self._restore_obs_scene()
         self._reload_matches()
 
     def _sync_ban_timer(self, status: str, current_turn_id: int | None) -> None:

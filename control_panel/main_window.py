@@ -6,6 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from control_panel.screens.banning_screen import BanningScreen
 from control_panel.screens.broadcast_settings_screen import BroadcastSettingsScreen
 from control_panel.screens.diagnostics_screen import DiagnosticsScreen
+from control_panel.screens.obs_settings_screen import ObsSettingsScreen
 from control_panel.screens.players_screen import PlayersScreen
 from control_panel.screens.setup_screen import SetupScreen
 
@@ -29,5 +30,6 @@ class MainWindow(QMainWindow):
         tabs.addTab(SetupScreen(session_factory), "Setup")
         tabs.addTab(BanningScreen(session_factory), "Baneo")
         tabs.addTab(BroadcastSettingsScreen(session_factory), "Transmisión")
+        tabs.addTab(ObsSettingsScreen(session_factory), "OBS")
         tabs.addTab(DiagnosticsScreen(), "Diagnóstico")
         self.setCentralWidget(tabs)

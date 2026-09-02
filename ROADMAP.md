@@ -651,18 +651,32 @@ diseño acordado.
 
 ## Fase 4 — Automatización completa de OBS
 
-- [ ] Pantalla de configuración de OBS en el panel: reemplaza las env
-      vars `OBS_HOST`/`OBS_PORT`/`OBS_PASSWORD` del walking skeleton por
-      la tabla `obs_settings` real (host, puerto, password, nombre de la
-      escena de draft).
-- [ ] Botón "Iniciar Baneo" dispara en paralelo el evento de Socket.IO
-      hacia el overlay (Fase 3) y `obs_service.switch_to_draft_scene()`.
-- [ ] `obs_service` guarda la escena activa antes de `SetCurrentProgramScene`
-      hacia la escena de draft.
-- [ ] Vuelta automática a la escena guardada al terminar `REVEAL`, con
-      el override manual del panel funcionando en cualquier momento.
-- [ ] Manejo de error explícito si OBS no está corriendo o la conexión
-      falla (modo degradado, ver `CODESTYLE.md`).
+- [x] Pantalla de configuración de OBS en el panel (`ObsSettingsScreen`,
+      pestaña "OBS"): reemplaza las env vars `OBS_HOST`/`OBS_PORT`/
+      `OBS_PASSWORD` del walking skeleton por la tabla `obs_settings`
+      real (host, puerto, password, nombre de la escena de draft) -
+      `DiagnosticsScreen` seguía usando las env vars directo, ahora la
+      config real vive en la base. Botón "Probar conexión" que además
+      completa un combo editable con las escenas reales de OBS si está
+      prendido (o se puede tipear a mano si todavía no lo está).
+- [x] Botón "Iniciar Baneo" dispara `obs_service.switch_to_draft_scene()`
+      además del evento de Socket.IO hacia el overlay que ya existía
+      (Fase 3) - si no hay escena de baneo configurada, no intenta
+      conectar a OBS en absoluto (no es un error, simplemente no está
+      en uso esa parte).
+- [x] `_switch_to_draft_scene()` guarda la escena activa antes de
+      cambiar (via `ObsService.switch_to_draft_scene`, que ya guardaba
+      la escena previa internamente desde el walking skeleton).
+- [x] Vuelta automática a la escena guardada al completar el reveal
+      (`_restore_obs_scene()`, enganchado en "Completar reveal").
+- [x] Manejo de error explícito si OBS no está corriendo o la conexión
+      falla: se loguea en un label del panel (`_obs_status_label`), el
+      draft sigue funcionando exactamente igual sin bloquearse (modo
+      degradado, ver `CODESTYLE.md`) - verificado con un test real
+      simulando `obsws_python.ReqClient` caído, confirmando que el
+      match sigue avanzando a `BANNING` igual.
+      7 tests nuevos del servicio (`obs_settings_service`, contra
+      SQLite real) - 58 en total en el backend.
 
 ## Fase 5 — Empaquetado
 
