@@ -762,18 +762,30 @@ VS Code. Checkpoints en orden (cada pantalla se hace por separado):
       (`showPopup()` + `grab()`), no solo midiendo su altura.
 - [x] **Checkpoint UI-4: pantalla Baneo (el más grande).**
       1. **Grilla estilo selección de campeón de LoL**: `CharacterButton`
-         nuevo (`QToolButton` con `ToolButtonTextUnderIcon`) reemplaza
-         los `QPushButton` de solo texto - reusa los mismos retratos
-         chicos que ya tiene el overlay (`overlay_app/public/portraits/
-         {id}.webp`), confirmado con un test real que `QPixmap` carga
-         `.webp` sin problema (no hace falta un tercer set de imágenes).
-         Marcadores por prefijo de texto en vez de tachado real (los
-         `QToolButton` de Qt no soportan `text-decoration` de forma
-         confiable vía QSS): ★ para personaje fuerte del rival, ✕ para
-         ya baneado. Estado seleccionado vía `setProperty("state",
-         "selected")` + regla QSS (mismo patrón que
-         `mark_as_primary_action`), no `setStyleSheet` directo. Barra de
-         búsqueda que esconde/muestra en vivo (`setVisible`).
+         reusa los mismos retratos chicos que ya tiene el overlay
+         (`overlay_app/public/portraits/{id}.webp`), confirmado con un
+         test real que `QPixmap` carga `.webp` sin problema (no hace
+         falta un tercer set de imágenes). Marcadores por prefijo de
+         texto en vez de tachado real (Qt no soporta `text-decoration`
+         de forma confiable vía QSS): ★ para personaje fuerte del
+         rival, ✕ para ya baneado. Estado seleccionado vía
+         `setProperty("state", "selected")` + regla QSS (mismo patrón
+         que `mark_as_primary_action`), no `setStyleSheet` directo.
+         Barra de búsqueda que esconde/muestra en vivo (`setVisible`).
+         **Fix real tras la primera prueba de Seba**: la primera versión
+         usaba un solo `QToolButton` con `ToolButtonTextUnderIcon`
+         (imagen y nombre juntos adentro del mismo recuadro bordeado) -
+         el pixmap nativo del retrato (mucho más grande que el ícono
+         pedido) empujaba el tamaño real del botón más allá del límite
+         fijado, superponiendo filas enteras de la grilla. Rehecho como
+         widget compuesto (`QWidget` con un `QToolButton` chico de
+         tamaño fijo en los dos ejes de la política de tamaño, no solo
+         `setFixedSize`, para que Qt no pueda ignorarlo - solo con la
+         cara y su borde, más un `QLabel` aparte y sin borde debajo con
+         el nombre), a pedido explícito de Seba: "el nombre debe ir
+         debajo del cuadro, no dentro del cuadro". Verificado con una
+         captura real (`window.grab()`) confirmando que ya no hay
+         superposición entre filas.
       2. **Panel de CFN de ambos jugadores**: rango/MR/personaje actual,
          reusando `player_profile_service.py` (checkpoint UI-2, mismo
          tracker que HUD-10) - consultado en threads de fondo por

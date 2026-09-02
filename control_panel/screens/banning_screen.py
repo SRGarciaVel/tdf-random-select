@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
+    QSizePolicy,
     QToolButton,
     QVBoxLayout,
     QWidget,
@@ -58,43 +59,91 @@ BAN_TIMER_MS = 30_000  # 30s por baneo (HUD) - parametro para poder acortarlo en
 PORTRAITS_DIR = (
     Path(__file__).resolve().parents[2] / "overlay_app" / "public" / "portraits"
 )
-CHARACTER_ICON_SIZE = QSize(56, 56)
 
 
 def _portrait_path(character_id: str) -> str:
     return str(PORTRAITS_DIR / f"{character_id}.webp")
 
 
-class CharacterButton(QToolButton):
-    """Carita del personaje + nombre abajo, al estilo de la seleccion de
-    campeon de League of Legends (checkpoint UI-4, a pedido de Seba) -
-    reemplaza los QPushButton de solo texto que tenia la grilla antes.
+CHARACTER_ICON_BOX = QSize(64, 64)  # tamano fijo real del recuadro con borde
+
+
+class CharacterButton(QWidget):
+    """Carita del personaje en un recuadro fijo + nombre abajo SIN
+    borde, al estilo de la seleccion de campeon de League of Legends
+    (checkpoint UI-4, a pedido de Seba). Es un widget compuesto (no un
+    solo QToolButton con ToolButtonTextUnderIcon) a proposito: la
+    primera version metía imagen y nombre adentro del mismo recuadro
+    bordeado, y Seba pidió separarlos - el recuadro clickeable es SOLO
+    la cara, el nombre es una etiqueta aparte debajo, sin su propio
+    borde.
     """
+
+    clicked = pyqtSignal(bool)
 
     def __init__(self, character_id: str, display_name: str) -> None:
         super().__init__()
         self.character_id = character_id
         self._display_name = display_name
-        self.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
-        self.setIconSize(CHARACTER_ICON_SIZE)
-        self.setFixedSize(80, 92)
+
+        self._icon_button = QToolButton()
+        # Tamano fijo real, en los dos ejes de la politica de tamano (no
+        # solo setFixedSize) - la primera version dejaba que el pixmap
+        # nativo del retrato (mucho mas grande que el icono deseado)
+        # empujara el tamano real del boton por fuera del limite
+        # pedido, superponiendo filas enteras de la grilla (bug real
+        # visto por Seba). Fijar la politica a mano en los dos ejes es
+        # lo que lo evita de forma confiable.
+        self._icon_button.setSizePolicy(
+            QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
+        )
+        self._icon_button.setIconSize(CHARACTER_ICON_BOX)
+        self._icon_button.setFixedSize(
+            CHARACTER_ICON_BOX.width() + 12, CHARACTER_ICON_BOX.height() + 12
+        )
         pixmap = QPixmap(_portrait_path(character_id))
         if not pixmap.isNull():
-            self.setIcon(QIcon(pixmap))
-        self.set_marker(is_strong=False, is_banned=False)
+            self._icon_button.setIcon(QIcon(pixmap))
+        self._icon_button.clicked.connect(self.clicked.emit)
+
+        self._name_label = QLabel(display_name)
+        self._name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._name_label.setWordWrap(True)
+        self._name_label.setFixedWidth(self._icon_button.width())
+
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(3)
+        layout.addWidget(self._icon_button, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(self._name_label)
+        self.setLayout(layout)
+
+    def click(self) -> None:
+        self._icon_button.click()
+
+    def setEnabled(self, enabled: bool) -> None:  # noqa: N802 - override de Qt
+        super().setEnabled(enabled)
+        self._icon_button.setEnabled(enabled)
+        self._name_label.setEnabled(enabled)
+
+    def text(self) -> str:
+        """Solo para que el resto del codigo (y los tests) puedan seguir
+        leyendo el marcador ★/✕ sin importarles que ahora vive en un
+        QLabel aparte, no en el propio boton."""
+        return self._name_label.text()
 
     def set_marker(self, is_strong: bool, is_banned: bool) -> None:
         """★ = personaje fuerte del rival, ✕ = ya baneado - prefijos de
-        texto en vez de tachado real: los QToolButton de Qt no soportan
-        text-decoration de forma confiable via QSS, un glifo se
-        renderiza siempre igual sin importar el estilo."""
+        texto en vez de tachado real: Qt no soporta text-decoration de
+        forma confiable via QSS, un glifo se renderiza siempre igual sin
+        importar el estilo."""
         prefix = "✕ " if is_banned else ("★ " if is_strong else "")
-        self.setText(f"{prefix}{self._display_name}")
+        self._name_label.setText(f"{prefix}{self._display_name}")
 
     def set_selected(self, selected: bool) -> None:
-        self.setProperty("state", "selected" if selected else "")
-        self.style().unpolish(self)
-        self.style().polish(self)
+        self._icon_button.setProperty("state", "selected" if selected else "")
+        self._icon_button.style().unpolish(self._icon_button)
+        self._icon_button.style().polish(self._icon_button)
 
 
 class BanningScreen(QWidget):
