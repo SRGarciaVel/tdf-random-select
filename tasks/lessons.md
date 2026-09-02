@@ -1,5 +1,35 @@
 # Lecciones aprendidas — TDF Random Select
 
+## `QComboBox.setMaxVisibleItems()` no alcanza con un QSS propio
+
+- Con 31 personajes en el desplegable de "personajes fuertes", el popup
+  se abría sin límite, extendiéndose fuera de la ventana en vez de
+  mostrar su propia barra de scroll. `setMaxVisibleItems(10)` es la
+  forma "de manual" de arreglar esto - pero no funcionó solo.
+- **Causa real**: el tema oscuro (checkpoint UI-1) le pone un QSS propio
+  a `QComboBox QAbstractItemView` (fondo, borde, colores de selección).
+  Con un estilo custom en la vista del popup, Qt a veces recalcula el
+  `sizeHint()` del popup a partir del contenido real en vez de respetar
+  `maxVisibleItems` - el límite queda ahí seteado, pero Qt lo ignora al
+  calcular cuánto espacio darle al popup.
+- **La sospecha inicial fue "¿es WSL2?"** - una hipótesis razonable
+  dado que se desarrolla ahí y el target final es Windows nativo, pero
+  incorrecta: era la propia hoja de estilos, no el entorno. Vale la
+  pena, cada vez que hay una duda de "¿es el entorno o es el código?",
+  primero descartar causas propias (sobre todo cambios recientes,
+  como un tema nuevo) antes de asumir que es una particularidad de
+  WSL2/X11 - más fácil de verificar y más probable en la práctica.
+- **Arreglo real**: fijar la altura máxima de la vista del popup a mano
+  (`combo.view().setMaximumHeight(260)`), en vez de confiar en que
+  `setMaxVisibleItems()` alcance por sí solo cuando hay QSS propio de
+  por medio.
+- **Cómo se verificó de verdad**: no alcanzaba con revisar que la
+  propiedad quedara seteada - había que abrir el popup de verdad
+  (`combo.showPopup()`) con el tema real aplicado (`apply_theme(app)`)
+  y medir el alto renderizado real, porque el bug solo aparecía en esa
+  combinación exacta (QSS + popup real), no en el valor de la propiedad
+  por sí solo.
+
 ## `emit(evento, None)` no se entrega de forma confiable al otro lado
 
 - Para "ocultar estadísticas" (checkpoint HUD-10) la primera versión

@@ -742,13 +742,19 @@ VS Code. Checkpoints en orden (cada pantalla se hace por separado):
       lista larga completa, ahora usa su propia barra de scroll interna
       (`QListWidget` ya la trae, solo hacía falta ponerle un techo).
       6 tests nuevos del servicio + 5 de la UI real - 71 en total.
-      **Fix aparte tras la primera prueba real**: el scroll que faltaba
-      no era el de la lista de ya agregados (ese ya tenía el límite de
-      alto) sino el del propio desplegable del combo para *agregar* un
-      personaje nuevo - con 31 personajes se abría sin límite,
-      extendiéndose fuera de la ventana. `setMaxVisibleItems(10)` en
-      `_character_selector` le pone techo y Qt agrega scroll propio
-      para el resto.
+      **Dos rondas de fix tras las pruebas reales**: (1) el scroll que
+      faltaba no era el de la lista de ya agregados (ese ya tenía el
+      límite de alto) sino el del propio desplegable del combo para
+      *agregar* un personaje nuevo. (2) `setMaxVisibleItems()` solo no
+      alcanzó — con un QSS propio en `QComboBox QAbstractItemView`
+      (checkpoint UI-1), Qt a veces recalcula el tamaño del popup
+      ignorando ese límite. No era un problema de WSL2 (la sospecha
+      inicial de Seba) sino del propio tema oscuro interfiriendo con el
+      cálculo automático de Qt - se necesitó fijar la altura máxima
+      real de la vista a mano (`view().setMaximumHeight(260)`), y se
+      verificó abriendo el popup de verdad (`showPopup()`) con el tema
+      real aplicado, no solo revisando que la propiedad estuviera
+      seteada.
 - [ ] **Checkpoint UI-4 (pendiente, el más grande): pantalla Baneo.**
       Grilla de personajes estilo selección de campeón de League of
       Legends (cara del personaje en un recuadro + nombre abajo, barra

@@ -53,9 +53,16 @@ class PlayerTagsPanel(QWidget):
         # limite, extendiendose fuera de la ventana en vez de mostrar
         # una barra de scroll propia - Seba lo encontro real al probar
         # (checkpoint UI-3, distinto del QListWidget de ya agregados,
-        # que ya tenia su propio fix de alto). setMaxVisibleItems() le
-        # pone techo al popup y Qt agrega scroll propio para el resto.
+        # que ya tenia su propio fix de alto). setMaxVisibleItems() solo
+        # no alcanzo: con un QSS propio en QComboBox QAbstractItemView
+        # (ver theme.py), Qt a veces recalcula el sizeHint del popup
+        # ignorando ese limite - fijar la altura maxima real de la vista
+        # a mano es mas confiable que confiar en que Qt la respete solo.
         self._character_selector.setMaxVisibleItems(10)
+        self._character_selector.view().setMaximumHeight(260)
+        self._character_selector.view().setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
         for entry in SF6_ROSTER:
             self._character_selector.addItem(entry["display_name"], entry["id"])
         add_button = QPushButton("Agregar")
