@@ -706,11 +706,26 @@ VS Code. Checkpoints en orden (cada pantalla se hace por separado):
       se vio el resultado real antes de entregarlo. 58 tests de fondo
       siguen pasando igual, confirmando que el tema no rompió ninguna
       interacción.
-- [ ] **Checkpoint UI-2 (pendiente): pantalla Jugadores.** Sacar la
-      columna ID (no le sirve a nadie verla), clic derecho con
-      renombrar/copiar, y mostrar más info de CFN en la lista (rango/MR
-      actual, quizás el personaje más jugado) aprovechando el tracker
-      que ya está conectado.
+- [x] **Checkpoint UI-2: pantalla Jugadores.** Columna ID sacada (no le
+      servía a nadie verla) - el id del jugador ahora viaja escondido en
+      `Qt.ItemDataRole.UserRole` del item de la columna Nombre, para que
+      las acciones (renombrar, eliminar) sigan sabiendo a quién
+      corresponde cada fila sin mostrarlo. Clic derecho con Renombrar,
+      Editar CFN ID, Copiar nombre, Copiar CFN ID y Eliminar (con
+      confirmación) - `update_player()` nuevo en `player_service.py`
+      para el rename/edición (antes solo existía crear/borrar). Dos
+      columnas nuevas con datos reales de tdf-edeportes: Rango/MR y
+      Personaje actual, vía `player_profile_service.py`
+      (`GET /cfn/players/{cfn_id}`, mismo tracker que ya usa HUD-10) -
+      se consultan en threads de fondo por jugador (nunca traba la
+      pantalla mientras cargan, verificado con un test que haría
+      timeout si se colgara), con "Sin datos" si el jugador no tiene
+      CFN ID o la consulta falla (modo degradado, no rompe nada si
+      tdf-edeportes está caído). Columnas con `ResizeToContents` para
+      que el texto no quede cortado. Verificado con capturas reales
+      (`window.grab()`), no solo tests. 15 tests nuevos (6 de
+      `update_player`, 4 de `player_profile_service`, 5 de la UI real
+      con `fetch_player_profile` mockeado) - 68 en total.
 - [ ] **Checkpoint UI-3 (pendiente): pantalla Setup.** Poder eliminar un
       torneo (hoy solo se puede crear), y arreglar el scroll de
       "personajes fuertes" (hoy hay que agrandar toda la ventana para
