@@ -2,16 +2,20 @@ from __future__ import annotations
 
 import datetime as dt
 import threading
+from pathlib import Path
 
-from PyQt6.QtCore import QTimer, pyqtSignal
+from PyQt6.QtCore import QSize, Qt, QTimer, pyqtSignal
+from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtWidgets import (
     QComboBox,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QMessageBox,
     QPushButton,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -28,10 +32,17 @@ from backend.app.services.draft_service import (
     DraftError,
     DraftService,
     build_match_state_payload,
+    delete_all_matches,
+    delete_match,
+    list_all_matches,
     list_open_matches,
 )
 from backend.app.services.obs_service import ObsConnectionError, ObsService
 from backend.app.services.obs_settings_service import get_obs_settings
+from backend.app.services.player_profile_service import (
+    PlayerProfileUnavailable,
+    fetch_player_profile,
+)
 from backend.app.services.player_service import get_player
 from control_panel.overlay_bridge import OverlayBridge
 from control_panel.theme import mark_as_primary_action
@@ -39,6 +50,51 @@ from control_panel.theme import mark_as_primary_action
 CHARACTER_DISPLAY_NAMES = {entry["id"]: entry["display_name"] for entry in SF6_ROSTER}
 GRID_COLUMNS = 6
 BAN_TIMER_MS = 30_000  # 30s por baneo (HUD) - parametro para poder acortarlo en tests
+
+# Mismos retratos chicos que ya usa el overlay (checkpoint UI-4, ver
+# ROADMAP.md) - QPixmap carga .webp sin problema (confirmado con un
+# test real antes de construir esto), no hace falta un tercer set de
+# imagenes para la grilla del panel.
+PORTRAITS_DIR = (
+    Path(__file__).resolve().parents[2] / "overlay_app" / "public" / "portraits"
+)
+CHARACTER_ICON_SIZE = QSize(56, 56)
+
+
+def _portrait_path(character_id: str) -> str:
+    return str(PORTRAITS_DIR / f"{character_id}.webp")
+
+
+class CharacterButton(QToolButton):
+    """Carita del personaje + nombre abajo, al estilo de la seleccion de
+    campeon de League of Legends (checkpoint UI-4, a pedido de Seba) -
+    reemplaza los QPushButton de solo texto que tenia la grilla antes.
+    """
+
+    def __init__(self, character_id: str, display_name: str) -> None:
+        super().__init__()
+        self.character_id = character_id
+        self._display_name = display_name
+        self.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
+        self.setIconSize(CHARACTER_ICON_SIZE)
+        self.setFixedSize(80, 92)
+        pixmap = QPixmap(_portrait_path(character_id))
+        if not pixmap.isNull():
+            self.setIcon(QIcon(pixmap))
+        self.set_marker(is_strong=False, is_banned=False)
+
+    def set_marker(self, is_strong: bool, is_banned: bool) -> None:
+        """★ = personaje fuerte del rival, ✕ = ya baneado - prefijos de
+        texto en vez de tachado real: los QToolButton de Qt no soportan
+        text-decoration de forma confiable via QSS, un glifo se
+        renderiza siempre igual sin importar el estilo."""
+        prefix = "✕ " if is_banned else ("★ " if is_strong else "")
+        self.setText(f"{prefix}{self._display_name}")
+
+    def set_selected(self, selected: bool) -> None:
+        self.setProperty("state", "selected" if selected else "")
+        self.style().unpolish(self)
+        self.style().polish(self)
 
 
 class BanningScreen(QWidget):
@@ -55,6 +111,9 @@ class BanningScreen(QWidget):
     # asi la consulta a tdf-edeportes nunca traba el panel (checkpoint
     # HUD-10, ver ROADMAP.md).
     _character_stats_fetched = pyqtSignal(object)
+    # Mismo patron para el panel de CFN de ambos jugadores (rango/MR/
+    # personaje actual) - checkpoint UI-4, ver ROADMAP.md.
+    _cfn_profile_fetched = pyqtSignal(object)
 
     def __init__(
         self, session_factory: sessionmaker, timer_ms: int = BAN_TIMER_MS
@@ -62,7 +121,7 @@ class BanningScreen(QWidget):
         super().__init__()
         self._session_factory = session_factory
         self._match_id: int | None = None
-        self._character_buttons: dict[str, QPushButton] = {}
+        self._character_buttons: dict[str, CharacterButton] = {}
         self._overlay_bridge = OverlayBridge()
 
         self._timer_ms = timer_ms
@@ -79,6 +138,7 @@ class BanningScreen(QWidget):
         # (checkpoint HUD-10) - toggle manual, nunca automatico.
         self._stats_visible = False
         self._character_stats_fetched.connect(self._on_character_stats_fetched)
+        self._cfn_profile_fetched.connect(self._on_cfn_profile_fetched)
         # Se crea al arrancar el baneo, se reusa para volver a la escena
         # original al completar el reveal (Fase 4, ver ROADMAP.md) - la
         # instancia guarda la escena previa internamente.
@@ -88,9 +148,15 @@ class BanningScreen(QWidget):
         self._match_selector.currentIndexChanged.connect(self._on_match_selected)
         refresh_button = QPushButton("Refrescar partidas")
         refresh_button.clicked.connect(self._reload_matches)
+        self._delete_match_button = QPushButton("Eliminar esta partida")
+        self._delete_match_button.clicked.connect(self._on_delete_match_clicked)
+        clear_all_button = QPushButton("Limpiar TODAS las partidas")
+        clear_all_button.clicked.connect(self._on_clear_all_matches_clicked)
         match_row = QHBoxLayout()
         match_row.addWidget(self._match_selector)
         match_row.addWidget(refresh_button)
+        match_row.addWidget(self._delete_match_button)
+        match_row.addWidget(clear_all_button)
 
         self._first_banner_selector = QComboBox()
         self._start_button = QPushButton("Iniciar baneo")
@@ -103,16 +169,45 @@ class BanningScreen(QWidget):
 
         self._status_label = QLabel("Elige una partida.")
 
-        grid_box = QGroupBox("Personajes (★ = personaje fuerte del rival)")
+        # Panel de CFN de ambos jugadores (rango/MR/personaje actual) -
+        # checkpoint UI-4, mismo tracker que ya usa Jugadores (UI-2) y
+        # HUD-10. Se decidio dejar afuera el "top de campeones" (Seba:
+        # el picante del baneo se decide charlando con el rival en vivo,
+        # no hace falta que la app lo sugiera).
+        self._cfn_label_a = QLabel("")
+        self._cfn_label_b = QLabel("")
+        for label in (self._cfn_label_a, self._cfn_label_b):
+            label.setProperty("secondary", "true")
+            label.setWordWrap(True)
+        cfn_box_a = QGroupBox("CFN — Jugador A")
+        cfn_layout_a = QVBoxLayout()
+        cfn_layout_a.addWidget(self._cfn_label_a)
+        cfn_box_a.setLayout(cfn_layout_a)
+        cfn_box_b = QGroupBox("CFN — Jugador B")
+        cfn_layout_b = QVBoxLayout()
+        cfn_layout_b.addWidget(self._cfn_label_b)
+        cfn_box_b.setLayout(cfn_layout_b)
+        cfn_row = QHBoxLayout()
+        cfn_row.addWidget(cfn_box_a)
+        cfn_row.addWidget(cfn_box_b)
+
+        self._character_search = QLineEdit()
+        self._character_search.setPlaceholderText("Buscar personaje...")
+        self._character_search.textChanged.connect(self._on_character_search_changed)
+
+        grid_box = QGroupBox("Personajes (★ = fuerte del rival, ✕ = ya baneado)")
         grid = QGridLayout()
         for index, entry in enumerate(SF6_ROSTER):
-            button = QPushButton(entry["display_name"])
+            button = CharacterButton(entry["id"], entry["display_name"])
             button.clicked.connect(
                 lambda _checked, cid=entry["id"]: self._on_character_selected(cid)
             )
             self._character_buttons[entry["id"]] = button
             grid.addWidget(button, index // GRID_COLUMNS, index % GRID_COLUMNS)
-        grid_box.setLayout(grid)
+        grid_box_layout = QVBoxLayout()
+        grid_box_layout.addWidget(self._character_search)
+        grid_box_layout.addLayout(grid)
+        grid_box.setLayout(grid_box_layout)
 
         self._lock_in_button = QPushButton("Bloquear")
         self._lock_in_button.setEnabled(False)
@@ -137,6 +232,7 @@ class BanningScreen(QWidget):
         layout.addLayout(match_row)
         layout.addLayout(start_row)
         layout.addWidget(self._status_label)
+        layout.addLayout(cfn_row)
         layout.addWidget(grid_box)
         layout.addWidget(self._lock_in_button)
         layout.addWidget(self._randomize_button)
@@ -173,6 +269,7 @@ class BanningScreen(QWidget):
     def _on_match_selected(self) -> None:
         self._match_id = self._match_selector.currentData()
         self._refresh_state()
+        self._refresh_cfn_panels()
 
     def _refresh_state(self) -> None:
         if self._match_id is None:
@@ -181,11 +278,13 @@ class BanningScreen(QWidget):
             self._status_label.setText("Elige una partida.")
             for button in self._character_buttons.values():
                 button.setEnabled(False)
-                button.setStyleSheet("")
+                button.set_marker(is_strong=False, is_banned=False)
+                button.set_selected(False)
             self._randomize_button.setEnabled(False)
             self._complete_button.setEnabled(False)
             self._start_button.setEnabled(False)
             self._lock_in_button.setEnabled(False)
+            self._delete_match_button.setEnabled(False)
             self._first_banner_selector.clear()
             self._results_label.setText("")
             return
@@ -231,25 +330,18 @@ class BanningScreen(QWidget):
         self._first_banner_selector.blockSignals(False)
         self._start_button.setEnabled(status == "SETUP")
         self._first_banner_selector.setEnabled(status == "SETUP")
+        self._delete_match_button.setEnabled(True)
 
         opponent_tags: set[str] = set()
         if current_turn_id is not None:
             opponent_tags = tags_b if current_turn_id == player_a.id else tags_a
 
         for character_id, button in self._character_buttons.items():
-            display_name = CHARACTER_DISPLAY_NAMES[character_id]
             is_banned = character_id in banned_ids
-            label = (
-                f"★ {display_name}" if character_id in opponent_tags else display_name
-            )
-            button.setText(label)
+            is_strong = character_id in opponent_tags
+            button.set_marker(is_strong=is_strong, is_banned=is_banned)
             button.setEnabled(status == "BANNING" and not is_banned)
-            if is_banned:
-                button.setStyleSheet("color: gray; text-decoration: line-through;")
-            elif character_id == self._selected_character_id:
-                button.setStyleSheet("background-color: #c400ff; color: white;")
-            else:
-                button.setStyleSheet("")
+            button.set_selected(character_id == self._selected_character_id)
 
         self._lock_in_button.setEnabled(
             status == "BANNING" and self._selected_character_id is not None
@@ -346,6 +438,12 @@ class BanningScreen(QWidget):
         finally:
             self._obs = None
 
+    def _on_character_search_changed(self, text: str) -> None:
+        query = text.strip().lower()
+        for character_id, button in self._character_buttons.items():
+            display_name = CHARACTER_DISPLAY_NAMES[character_id].lower()
+            button.setVisible(query in display_name)
+
     def _on_character_selected(self, character_id: str) -> None:
         if self._match_id is None or self._current_turn_key is None:
             return
@@ -362,10 +460,8 @@ class BanningScreen(QWidget):
             previous_selection is not None
             and previous_selection in self._character_buttons
         ):
-            self._character_buttons[previous_selection].setStyleSheet("")
-        self._character_buttons[character_id].setStyleSheet(
-            "background-color: #c400ff; color: white;"
-        )
+            self._character_buttons[previous_selection].set_selected(False)
+        self._character_buttons[character_id].set_selected(True)
         self._lock_in_button.setEnabled(True)
 
         _, current_turn_player_id = self._current_turn_key
@@ -563,3 +659,118 @@ class BanningScreen(QWidget):
                 "win_rate": data.get("win_rate"),
             }
         )
+
+    def _refresh_cfn_panels(self) -> None:
+        """Rango/MR/personaje actual de ambos jugadores del match elegido
+        (checkpoint UI-4) - se consulta en threads de fondo, igual
+        criterio que Jugadores (UI-2) y las estadisticas de HUD-10:
+        nunca debe trabar el panel mientras carga."""
+        if self._match_id is None:
+            self._cfn_label_a.setText("")
+            self._cfn_label_b.setText("")
+            return
+
+        with self._session_factory() as session:
+            match = session.get(Match, self._match_id)
+            if match is None:
+                return
+            player_a = get_player(session, match.player_a_id)
+            player_b = get_player(session, match.player_b_id)
+
+        self._fetch_cfn_profile_in_background("a", player_a)
+        self._fetch_cfn_profile_in_background("b", player_b)
+
+    def _fetch_cfn_profile_in_background(self, side: str, player) -> None:
+        label = self._cfn_label_a if side == "a" else self._cfn_label_b
+        if player is None:
+            label.setText("")
+            return
+        if not player.cfn_id:
+            label.setText(f"{player.display_name}\nSin CFN ID cargado.")
+            return
+
+        label.setText(f"{player.display_name}\nConsultando...")
+        player_display_name = player.display_name
+        cfn_id = player.cfn_id
+
+        def worker() -> None:
+            try:
+                profile = fetch_player_profile(cfn_id)
+                self._cfn_profile_fetched.emit(
+                    {
+                        "side": side,
+                        "ok": True,
+                        "profile": profile,
+                        "player_name": player_display_name,
+                    }
+                )
+            except PlayerProfileUnavailable as exc:
+                self._cfn_profile_fetched.emit(
+                    {
+                        "side": side,
+                        "ok": False,
+                        "error": str(exc),
+                        "player_name": player_display_name,
+                    }
+                )
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _on_cfn_profile_fetched(self, result: dict) -> None:
+        label = self._cfn_label_a if result["side"] == "a" else self._cfn_label_b
+        player_name = result["player_name"]
+        if not result["ok"]:
+            label.setText(f"{player_name}\nSin datos de tdf-edeportes.")
+            return
+
+        profile = result["profile"]
+        rank = profile.get("league_rank")
+        mr = profile.get("master_rating")
+        character = profile.get("character_name")
+
+        lines = [player_name]
+        if mr:
+            lines.append(f"{rank or 'Master'} · {mr} MR")
+        elif rank:
+            lines.append(rank)
+        else:
+            lines.append("Sin rango disponible")
+        if character:
+            lines.append(f"Personaje actual: {character}")
+        label.setText("\n".join(lines))
+
+    def _on_delete_match_clicked(self) -> None:
+        if self._match_id is None:
+            return
+        match_label = self._match_selector.currentText()
+        confirm = QMessageBox.question(
+            self,
+            "Eliminar partida",
+            f"¿Eliminar '{match_label}'? Esta acción no se puede deshacer.",
+        )
+        if confirm != QMessageBox.StandardButton.Yes:
+            return
+        with self._session_factory() as session:
+            delete_match(session, self._match_id)
+        self._reload_matches()
+
+    def _on_clear_all_matches_clicked(self) -> None:
+        with self._session_factory() as session:
+            total = len(list_all_matches(session))
+        if total == 0:
+            QMessageBox.information(
+                self, "Nada que limpiar", "No hay partidas guardadas todavía."
+            )
+            return
+        confirm = QMessageBox.question(
+            self,
+            "Limpiar TODAS las partidas",
+            f"¿Eliminar las {total} partida(s) guardadas (de cualquier estado)? "
+            "Esta acción no se puede deshacer.",
+        )
+        if confirm != QMessageBox.StandardButton.Yes:
+            return
+        with self._session_factory() as session:
+            deleted = delete_all_matches(session)
+        QMessageBox.information(self, "Listo", f"Se eliminaron {deleted} partida(s).")
+        self._reload_matches()

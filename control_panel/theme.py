@@ -122,6 +122,31 @@ QPushButton[accent="true"]:disabled {{
     color: {TEXT_DISABLED};
 }}
 
+/* --- Grilla de personajes (checkpoint UI-4) --- */
+QToolButton {{
+    background-color: {BG_SURFACE};
+    color: {TEXT_PRIMARY};
+    border: 2px solid {BORDER};
+    border-radius: 6px;
+    padding: 4px;
+}}
+
+QToolButton:hover {{
+    border-color: {BORDER_STRONG};
+}}
+
+QToolButton:disabled {{
+    color: {TEXT_DISABLED};
+    background-color: {BG_DARKEST};
+}}
+
+/* seteado a mano via CharacterButton.set_selected() - el personaje que
+ * el staff eligio pero todavia no confirmo con "Bloquear". */
+QToolButton[state="selected"] {{
+    border-color: {ACCENT};
+    background-color: {BG_SURFACE_HOVER};
+}}
+
 /* --- Campos de entrada --- */
 QLineEdit, QComboBox, QSpinBox, QTextEdit, QPlainTextEdit {{
     background-color: {BG_SURFACE};

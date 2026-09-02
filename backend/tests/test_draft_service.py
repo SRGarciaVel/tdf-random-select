@@ -4,13 +4,16 @@ import pytest
 from sqlalchemy.orm import Session
 
 from backend.app.data.sf6_roster import CHARACTER_IDS
-from backend.app.models import MatchBan, Player, Tournament
+from backend.app.models import Match, MatchBan, Player, Tournament
 from backend.app.services.draft_service import (
     CharacterAlreadyBannedError,
     DraftService,
     InvalidStateError,
     OutOfTurnError,
     UnknownCharacterError,
+    delete_all_matches,
+    delete_match,
+    list_all_matches,
 )
 
 
@@ -177,3 +180,52 @@ def test_unique_constraint_blocks_duplicate_ban_at_db_level(
     )
     with pytest.raises(IntegrityError):
         session.commit()
+
+
+def test_delete_match_removes_it_and_its_bans(
+    session: Session, tournament: Tournament, player_a: Player, player_b: Player
+) -> None:
+    service = DraftService(session)
+    match = service.create_match(tournament.id, player_a.id, player_b.id)
+    service.start_banning(match.id, player_a.id)
+    service.ban_character(match.id, CHARACTER_IDS[0], player_a.id)
+
+    match_id = match.id
+    assert session.query(MatchBan).filter(MatchBan.match_id == match_id).count() == 1
+
+    delete_match(session, match_id)
+
+    assert session.get(Match, match_id) is None
+    assert session.query(MatchBan).filter(MatchBan.match_id == match_id).count() == 0
+
+
+def test_delete_nonexistent_match_does_not_raise(session: Session) -> None:
+    delete_match(session, 9999)  # no debe reventar
+
+
+def test_delete_all_matches_removes_everything_regardless_of_status(
+    session: Session, tournament: Tournament, player_a: Player, player_b: Player
+) -> None:
+    """El caso real que motivo este checkpoint: Seba acumulo 28 partidas
+    de prueba en distintos estados (algunas terminadas, otras a medio
+    banear) - la limpieza masiva tiene que borrar todas, sin importar
+    en que estado quedaron."""
+    service = DraftService(session)
+    match_setup = service.create_match(tournament.id, player_a.id, player_b.id)
+
+    match_banning = service.create_match(tournament.id, player_a.id, player_b.id)
+    service.start_banning(match_banning.id, player_a.id)
+    service.ban_character(match_banning.id, CHARACTER_IDS[0], player_a.id)
+
+    assert len(list_all_matches(session)) == 2
+
+    deleted_count = delete_all_matches(session)
+
+    assert deleted_count == 2
+    assert list_all_matches(session) == []
+    assert session.get(Match, match_setup.id) is None
+    assert session.get(Match, match_banning.id) is None
+
+
+def test_delete_all_matches_on_empty_db_returns_zero(session: Session) -> None:
+    assert delete_all_matches(session) == 0

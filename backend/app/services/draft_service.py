@@ -19,6 +19,40 @@ def list_open_matches(session: Session) -> list[Match]:
     )
 
 
+def list_all_matches(session: Session) -> list[Match]:
+    """Todos los matches sin importar el estado - checkpoint UI-4, para
+    la lista de "eliminar partidas" (a diferencia de list_open_matches,
+    que a proposito esconde los DONE porque ya no hay nada que seguir
+    trabajando en ellos)."""
+    return list(session.query(Match).order_by(Match.id.desc()).all())
+
+
+def delete_match(session: Session, match_id: int) -> None:
+    """Elimina un match puntual y sus baneos/resultados (checkpoint
+    UI-4, ver ROADMAP.md) - Match.bans y Match.results ya tienen
+    cascade="all, delete-orphan", asi que un solo session.delete()
+    alcanza. No hace nada si el match ya no existe (mismo criterio que
+    delete_player/delete_tournament)."""
+    match = session.get(Match, match_id)
+    if match is not None:
+        session.delete(match)
+        session.commit()
+
+
+def delete_all_matches(session: Session) -> int:
+    """Limpieza masiva - borra TODOS los matches (de cualquier estado),
+    pensado para descartar partidas de prueba acumuladas entre pruebas y
+    pruebas (checkpoint UI-4, caso real: Seba llego a acumular 28
+    partidas de prueba). Devuelve cuantos se borraron, para que el
+    llamador pueda confirmarlo en la UI."""
+    matches = session.query(Match).all()
+    count = len(matches)
+    for match in matches:
+        session.delete(match)
+    session.commit()
+    return count
+
+
 class DraftError(Exception):
     """Base de cualquier violacion de la maquina de estados del draft."""
 

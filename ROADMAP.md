@@ -760,14 +760,39 @@ VS Code. Checkpoints en orden (cada pantalla se hace por separado):
       `setMaximumHeight()` de forma confiable con estilos propios -
       verificado con una captura real del popup abierto de verdad
       (`showPopup()` + `grab()`), no solo midiendo su altura.
-- [ ] **Checkpoint UI-4 (pendiente, el más grande): pantalla Baneo.**
-      Grilla de personajes estilo selección de campeón de League of
-      Legends (cara del personaje en un recuadro + nombre abajo, barra
-      de búsqueda, insignia de estrella para "personaje fuerte del
-      rival" en vez de texto), panel de CFN de ambos jugadores más
-      completo y visible (campeones más fuertes, win-rate, MR), y poder
-      eliminar partidas - individual Y con un botón de limpieza masiva
-      (Seba ya acumuló 28 partidas de prueba).
+- [x] **Checkpoint UI-4: pantalla Baneo (el más grande).**
+      1. **Grilla estilo selección de campeón de LoL**: `CharacterButton`
+         nuevo (`QToolButton` con `ToolButtonTextUnderIcon`) reemplaza
+         los `QPushButton` de solo texto - reusa los mismos retratos
+         chicos que ya tiene el overlay (`overlay_app/public/portraits/
+         {id}.webp`), confirmado con un test real que `QPixmap` carga
+         `.webp` sin problema (no hace falta un tercer set de imágenes).
+         Marcadores por prefijo de texto en vez de tachado real (los
+         `QToolButton` de Qt no soportan `text-decoration` de forma
+         confiable vía QSS): ★ para personaje fuerte del rival, ✕ para
+         ya baneado. Estado seleccionado vía `setProperty("state",
+         "selected")` + regla QSS (mismo patrón que
+         `mark_as_primary_action`), no `setStyleSheet` directo. Barra de
+         búsqueda que esconde/muestra en vivo (`setVisible`).
+      2. **Panel de CFN de ambos jugadores**: rango/MR/personaje actual,
+         reusando `player_profile_service.py` (checkpoint UI-2, mismo
+         tracker que HUD-10) - consultado en threads de fondo por
+         jugador. Se decidió explícitamente NO construir un endpoint
+         nuevo de "top de campeones" en tdf-edeportes (conversación con
+         Seba: el picante del baneo se decide charlando con el rival en
+         vivo el día del torneo, no hace falta que la app lo sugiera) -
+         ahorra una vuelta completa a otro repo.
+      3. **Eliminar partidas**: `delete_match()` individual y
+         `delete_all_matches()` masivo en `draft_service.py` (con
+         confirmación y conteo real antes de borrar) - `Match.bans`/
+         `Match.results` ya cascadeaban solos (igual que se confirmó
+         para torneos en UI-3), un test real arma un match con un baneo
+         de verdad y confirma que `MatchBan` también desaparece.
+      13 tests nuevos del servicio (`delete_match`/`delete_all_matches`)
+      + 6 de la UI real (panel de CFN, estrella, filtro de búsqueda,
+      marcador de baneado, eliminar individual, limpieza masiva) - 75
+      en total. Verificado también con una captura real de la pantalla
+      completa (`window.grab()`), no solo tests.
 - [ ] **Checkpoint UI-5 (pendiente): pantalla Transmisión, repensada.**
       Hoy está subutilizada (solo nombre/logo/colores, poco uso real).
       Direcciones acordadas para explorar, las 4 juntas:
