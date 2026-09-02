@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PyQt6.QtWidgets import QMainWindow, QTabWidget
+from PyQt6.QtWidgets import QDialog, QMainWindow, QTabWidget, QVBoxLayout
 from sqlalchemy.orm import sessionmaker
 
 from control_panel.screens.banning_screen import BanningScreen
@@ -18,6 +18,18 @@ class MainWindow(QMainWindow):
     reciben lo que necesitan (session_factory, etc.) por constructor en
     vez de ir a buscarlo global - mismo criterio que los servicios del
     backend (CODESTYLE.md).
+
+    Orden y estructura de pestañas reorganizados en el checkpoint UX-1
+    (ver ROADMAP.md) tras una conversación sobre qué tan comprensible es
+    el flujo para un streamer no técnico: antes el orden era arbitrario
+    (Jugadores, Setup, Baneo, Transmisión, OBS, Diagnóstico) mezclando
+    "cosas que se configuran una vez" con "lo que se usa todos los
+    días" sin ningún criterio. Ahora: primero lo que se configura una
+    sola vez antes del primer torneo (OBS, Transmisión), después lo que
+    se usa en cada evento (Jugadores, Setup) y por último lo que se usa
+    constantemente en vivo (Baneo). "Diagnóstico" (herramienta de
+    desarrollo, Ping/Test OBS, sin valor para el streamer en el día a
+    día) salió de la barra de pestañas y pasó a un menú "Herramientas".
     """
 
     def __init__(self, session_factory: sessionmaker) -> None:
@@ -28,11 +40,40 @@ class MainWindow(QMainWindow):
         # al abrir la app sobre OBS y quedar apretada (checkpoint UI-4).
         self.resize(1050, 850)
 
+        self._obs_screen = ObsSettingsScreen(session_factory)
+        self._broadcast_screen = BroadcastSettingsScreen(session_factory)
+        self._players_screen = PlayersScreen(session_factory)
+        self._setup_screen = SetupScreen(session_factory)
+        self._banning_screen = BanningScreen(session_factory)
+
         tabs = QTabWidget()
-        tabs.addTab(PlayersScreen(session_factory), "Jugadores")
-        tabs.addTab(SetupScreen(session_factory), "Setup")
-        tabs.addTab(BanningScreen(session_factory), "Baneo")
-        tabs.addTab(BroadcastSettingsScreen(session_factory), "Transmisión")
-        tabs.addTab(ObsSettingsScreen(session_factory), "OBS")
-        tabs.addTab(DiagnosticsScreen(session_factory), "Diagnóstico")
+        tabs.addTab(self._obs_screen, "OBS")
+        tabs.addTab(self._broadcast_screen, "Transmisión")
+        tabs.addTab(self._players_screen, "Jugadores")
+        tabs.addTab(self._setup_screen, "Setup")
+        tabs.addTab(self._banning_screen, "Baneo")
+        tabs.currentChanged.connect(self._on_tab_changed)
         self.setCentralWidget(tabs)
+
+        self._diagnostics_screen = DiagnosticsScreen(session_factory)
+        tools_menu = self.menuBar().addMenu("Herramientas")
+        diagnostics_action = tools_menu.addAction("Diagnóstico...")
+        diagnostics_action.triggered.connect(self._open_diagnostics)
+
+    def _on_tab_changed(self, index: int) -> None:
+        # Setup muestra el valor real del timer de baneo (checkpoint
+        # UX-1) - si se cambió en Transmisión mientras tanto, esto lo
+        # refresca cada vez que se vuelve a esta pestaña, no solo al
+        # abrir la app.
+        current_widget = self.centralWidget().widget(index)
+        if current_widget is self._setup_screen:
+            self._setup_screen.refresh_timer_label()
+
+    def _open_diagnostics(self) -> None:
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Diagnóstico")
+        layout = QVBoxLayout()
+        layout.addWidget(self._diagnostics_screen)
+        dialog.setLayout(layout)
+        dialog.resize(420, 240)
+        dialog.exec()

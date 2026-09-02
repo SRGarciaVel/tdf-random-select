@@ -885,6 +885,64 @@ VS Code. Checkpoints en orden (cada pantalla se hace por separado):
       `broadcast_preset_service`, 6 de la UI real de Transmisión, más
       la migración de columnas) - 87 en total.
 
+## Fase 4.6 — Comprensibilidad para un usuario no técnico (checkpoint UX-1)
+
+Con las 5 pestañas ya rediseñadas visualmente (Fase 4.5), Seba planteó
+una pregunta distinta: ¿es comprensible el flujo para el streamer/CEO,
+que no es informático, más allá de que se vea bien? De paso, evaluamos
+juntos una sugerencia de Qwen Coder ("checklist pre-empaquetado") -
+resultó ser en su mayoría falsos positivos (campo muerto sin usar,
+carpeta gitignoreada a propósito, dependencia sin importar en ningún
+lado) por leer el repo sin confirmar si el código usaba esas cosas de
+verdad - documentado en detalle en la conversación, no se tocó nada de
+eso.
+
+- [x] **Bug real encontrado y corregido**: Setup mostraba "Si se agota
+      el timer de 30s" como texto fijo - desde que el timer se volvió
+      configurable (checkpoint UI-5) podía ser cualquier valor entre 5
+      y 300s, y ese cartel seguía mintiendo "30s" para siempre. Ahora
+      lee el valor real de la base (`refresh_timer_label()`) al
+      construirse Y cada vez que se vuelve a esa pestaña (conectado en
+      `main_window.py`), verificado con un test que cambia el timer a
+      77s desde otra pantalla y confirma que Setup lo refleja.
+- [x] **Pestañas reordenadas** según cuándo se usan, no en orden
+      arbitrario: OBS y Transmisión (se configuran una vez antes del
+      primer torneo) primero, después Jugadores/Setup/Baneo (uso
+      diario) - antes mezclaba ambos grupos sin ningún criterio.
+- [x] **"Diagnóstico" salió de la barra de pestañas.** Ping/Test OBS son
+      herramientas de desarrollo sin valor para el streamer en el día a
+      día - competían visualmente con lo que sí necesita tocar. Ahora
+      vive en un menú "Herramientas" (`QDialog` que reutiliza la misma
+      instancia de `DiagnosticsScreen`).
+- [x] **Tooltip contextual** en la tabla de Jugadores explicando el clic
+      derecho - un patrón común en herramientas técnicas pero no
+      necesariamente obvio para alguien fuera de ese mundo. Se suma al
+      cartel fijo que ya había, no lo reemplaza (una pista fija +
+      una contextual, justo donde se necesita).
+- [x] **Indicador de paso en Baneo** ("Paso 2 de 4: Baneando
+      personajes") - convierte una pantalla con varios botones visibles
+      a la vez (la mayoría deshabilitados según el momento, aunque
+      funcionalmente bien guiado) en algo que se lee como una secuencia
+      clara. Probado recorriendo el flujo real completo
+      (SETUP→BANNING→RANDOMIZING→REVEAL, los 4 pasos) más el caso sin
+      partida seleccionada.
+- [x] **Íconos con `qtawesome`** en los botones principales de las 5
+      pantallas (Iniciar baneo, Bloquear, Randomizar, Completar reveal,
+      Mostrar estadísticas, Refrescar, Guardar, Agregar, Crear match,
+      Elegir logo/color, Aplicar/Guardar preset, Probar conexión) -
+      confirmado que la librería funciona de verdad con PyQt6 (no solo
+      que instala) antes de comprometerse a usarla. Acciones
+      destructivas (Eliminar torneo/partida/preset, Limpiar todas las
+      partidas) llevan un tacho de basura en rojo suave
+      (`icon_danger()`) como pista de color adicional a la de leer la
+      palabra "Eliminar" - mismo criterio que ya usa el resto del tema
+      (ver `theme.py`).
+
+  Dependencia nueva: `QtAwesome==1.4.2` en `requirements.txt`.
+  87 tests de fondo siguen pasando igual (ninguno de estos cambios es
+  de lógica, todos de UI) - verificado también con capturas reales
+  (`window.grab()`) de Baneo, Setup y Jugadores.
+
 ## Fase 5 — Empaquetado
 
 - [ ] `.exe` con PyInstaller (`--onefile`), estáticos de `overlay_app`

@@ -13,7 +13,8 @@ explícitamente en el chat antes de programar esto).
 
 from __future__ import annotations
 
-from PyQt6.QtGui import QFont
+import qtawesome as qta
+from PyQt6.QtGui import QFont, QIcon
 from PyQt6.QtWidgets import QApplication
 
 # Paleta - misma familia de colores que el HUD (--hud-accent-color por
@@ -350,3 +351,24 @@ def mark_as_primary_action(button) -> None:
     button.setProperty("accent", "true")
     button.style().unpolish(button)
     button.style().polish(button)
+
+
+def icon(name: str, primary: bool = False) -> QIcon:
+    """Ícono de qtawesome coherente con la paleta del tema (checkpoint
+    UX-1, ver ROADMAP.md) - ayuda a reconocer una acción de un vistazo
+    sin tener que leer el texto completo del botón, útil para alguien
+    no técnico mirando la pantalla rápido en medio de un torneo.
+
+    `name` es un nombre de FontAwesome 5 solid, ej. "fa5s.play". Con
+    `primary=True` el ícono sale blanco (para botones marcados con
+    mark_as_primary_action, que tienen fondo de color solido) - si no,
+    sale del mismo tono que el texto normal del tema.
+    """
+    return qta.icon(name, color="white" if primary else TEXT_PRIMARY)
+
+
+def icon_danger(name: str) -> QIcon:
+    """Variante en rojo suave para acciones destructivas (eliminar,
+    limpiar) - una pista de color adicional a la de leer la palabra
+    "Eliminar", coherente con el resto del lenguaje visual."""
+    return qta.icon(name, color="#e05a5a")

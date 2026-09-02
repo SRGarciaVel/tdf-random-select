@@ -31,7 +31,7 @@ from backend.app.services.player_service import (
     list_players,
     update_player,
 )
-from control_panel.theme import mark_as_primary_action
+from control_panel.theme import icon, mark_as_primary_action
 
 # Nombre | CFN ID | Rango/MR | Personaje actual - checkpoint UI-2, ver
 # ROADMAP.md. Se sacó la columna ID (no le sirve a nadie verla, el
@@ -65,7 +65,9 @@ class PlayersScreen(QWidget):
         self._name_input.setPlaceholderText("Nombre del jugador")
         self._cfn_input = QLineEdit()
         self._cfn_input.setPlaceholderText("CFN ID (opcional)")
-        add_button = QPushButton("Agregar jugador")
+        add_button = QPushButton(
+            icon("fa5s.user-plus", primary=True), "Agregar jugador"
+        )
         add_button.clicked.connect(self._on_add_clicked)
         mark_as_primary_action(add_button)
 
@@ -89,6 +91,16 @@ class PlayersScreen(QWidget):
         self._table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self._table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self._table.customContextMenuRequested.connect(self._on_context_menu_requested)
+        # Tooltip contextual (checkpoint UX-1) - aparece justo al pasar
+        # el mouse sobre la fila, ademas del cartel fijo de abajo. El
+        # clic derecho no es un patron obvio para alguien que no viene
+        # de herramientas tecnicas, asi que conviene la pista en dos
+        # lugares: uno fijo (siempre visible) y uno contextual (justo
+        # donde se necesita).
+        self._table.setToolTip(
+            "Clic derecho para renombrar, editar el CFN ID, copiar datos "
+            "o eliminar un jugador."
+        )
 
         layout = QVBoxLayout()
         layout.addWidget(QLabel("Jugadores"))

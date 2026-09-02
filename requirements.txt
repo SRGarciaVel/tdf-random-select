@@ -5,6 +5,7 @@ flask-socketio==5.3.7
 python-socketio==5.11.4
 simple-websocket==1.0.0
 obsws-python==1.8.0
+requests==2.32.3
 python-dotenv==1.0.1
 SQLAlchemy==2.0.35
-requests==2.32.3
+QtAwesome==1.4.2

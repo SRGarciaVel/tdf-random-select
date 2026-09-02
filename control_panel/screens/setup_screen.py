@@ -18,10 +18,11 @@ from PyQt6.QtWidgets import (
 )
 from sqlalchemy.orm import sessionmaker
 
-from control_panel.theme import mark_as_primary_action
+from control_panel.theme import icon, icon_danger, mark_as_primary_action
 
 from backend.app.data.sf6_roster import SF6_ROSTER
 from backend.app.models import Tournament
+from backend.app.services.broadcast_settings_service import get_broadcast_settings
 from backend.app.services.character_tag_service import (
     add_character_tag,
     delete_character_tag,
@@ -65,7 +66,7 @@ class PlayerTagsPanel(QWidget):
         )
         for entry in SF6_ROSTER:
             self._character_selector.addItem(entry["display_name"], entry["id"])
-        add_button = QPushButton("Agregar")
+        add_button = QPushButton(icon("fa5s.plus"), "Agregar")
         add_button.clicked.connect(self._on_add_clicked)
 
         add_row = QHBoxLayout()
@@ -145,7 +146,9 @@ class SetupScreen(QWidget):
         self._tournament_selector.currentIndexChanged.connect(
             self._on_tournament_selection_changed
         )
-        self._delete_tournament_button = QPushButton("Eliminar torneo")
+        self._delete_tournament_button = QPushButton(
+            icon_danger("fa5s.trash"), "Eliminar torneo"
+        )
         self._delete_tournament_button.clicked.connect(
             self._on_delete_tournament_clicked
         )
@@ -167,7 +170,15 @@ class SetupScreen(QWidget):
         tournament_form.addRow("Nombre torneo nuevo", self._new_tournament_name)
         tournament_form.addRow("Baneos por jugador", self._new_tournament_bans)
         tournament_form.addRow(
-            "Si se agota el timer de 30s", self._new_tournament_timeout_behavior
+            "Si se agota el timer", self._new_tournament_timeout_behavior
+        )
+        # Referencia al label real que arma QFormLayout - antes decia
+        # "timer de 30s" fijo en el texto, que quedaba mintiendo apenas
+        # alguien cambiaba el timer en Transmisión (checkpoint UI-5).
+        # Ahora se actualiza con el valor real (ver refresh_timer_label,
+        # llamado al construir y cada vez que se vuelve a esta pestaña).
+        self._timeout_behavior_label = tournament_form.labelForField(
+            self._new_tournament_timeout_behavior
         )
         tournament_box = QGroupBox("Torneo")
         tournament_box.setLayout(tournament_form)
@@ -192,7 +203,9 @@ class SetupScreen(QWidget):
         tags_row.addWidget(self._tags_a)
         tags_row.addWidget(self._tags_b)
 
-        create_button = QPushButton("Crear match")
+        create_button = QPushButton(
+            icon("fa5s.plus-circle", primary=True), "Crear match"
+        )
         create_button.clicked.connect(self._on_create_match_clicked)
         mark_as_primary_action(create_button)
         create_button.setMaximumWidth(320)
@@ -209,6 +222,17 @@ class SetupScreen(QWidget):
 
         self._reload_tournaments()
         self._reload_players()
+        self.refresh_timer_label()
+
+    def refresh_timer_label(self) -> None:
+        """Actualiza el texto con el valor REAL del timer de baneo
+        (checkpoint UX-1) - se llama al construir la pantalla y cada vez
+        que se vuelve a esta pestaña (ver main_window.py), asi nunca
+        queda mostrando un numero viejo si se cambio en Transmisión
+        mientras tanto."""
+        with self._session_factory() as session:
+            seconds = get_broadcast_settings(session).ban_timer_seconds
+        self._timeout_behavior_label.setText(f"Si se agota el timer ({seconds}s)")
 
     def _reload_tournaments(self) -> None:
         self._tournament_selector.blockSignals(True)

@@ -34,7 +34,7 @@ from backend.app.services.broadcast_settings_service import (
     get_broadcast_settings,
     update_broadcast_settings,
 )
-from control_panel.theme import mark_as_primary_action
+from control_panel.theme import icon, icon_danger, mark_as_primary_action
 
 # Mismo criterio que los retratos (download_portraits.py): los assets
 # viven en overlay_app/public/, y requieren un "npm run build" despues
@@ -74,7 +74,9 @@ class BroadcastSettingsScreen(QWidget):
         )
 
         self._logo_file_label = QLabel("Sin logo de torneo cargado.")
-        self._logo_pick_button = QPushButton("Elegir logo del torneo...")
+        self._logo_pick_button = QPushButton(
+            icon("fa5s.image"), "Elegir logo del torneo..."
+        )
         self._logo_pick_button.clicked.connect(self._on_pick_logo_clicked)
 
         name_form = QFormLayout()
@@ -89,7 +91,9 @@ class BroadcastSettingsScreen(QWidget):
         self._accent_color = "#c400ff"
         self._panel_background_color = "rgba(5, 5, 6, 0.85)"
 
-        self._accent_color_button = QPushButton("Elegir color de acento...")
+        self._accent_color_button = QPushButton(
+            icon("fa5s.palette"), "Elegir color de acento..."
+        )
         self._accent_color_button.clicked.connect(self._on_pick_accent_color)
         self._accent_color_swatch = QLabel()
         self._accent_color_swatch.setFixedSize(28, 20)
@@ -97,7 +101,9 @@ class BroadcastSettingsScreen(QWidget):
         accent_row.addWidget(self._accent_color_button)
         accent_row.addWidget(self._accent_color_swatch)
 
-        self._panel_bg_button = QPushButton("Elegir fondo de paneles...")
+        self._panel_bg_button = QPushButton(
+            icon("fa5s.fill-drip"), "Elegir fondo de paneles..."
+        )
         self._panel_bg_button.clicked.connect(self._on_pick_panel_background)
         self._panel_bg_swatch = QLabel()
         self._panel_bg_swatch.setFixedSize(28, 20)
@@ -113,7 +119,9 @@ class BroadcastSettingsScreen(QWidget):
 
         # --- Logo de auspiciador/red social (checkpoint UI-5) ---
         self._sponsor_logo_file_label = QLabel("Sin logo de auspiciador cargado.")
-        self._sponsor_logo_pick_button = QPushButton("Elegir logo de auspiciador...")
+        self._sponsor_logo_pick_button = QPushButton(
+            icon("fa5s.image"), "Elegir logo de auspiciador..."
+        )
         self._sponsor_logo_pick_button.clicked.connect(
             self._on_pick_sponsor_logo_clicked
         )
@@ -157,16 +165,18 @@ class BroadcastSettingsScreen(QWidget):
 
         # --- Presets guardados (checkpoint UI-5) ---
         self._preset_selector = QComboBox()
-        apply_preset_button = QPushButton("Aplicar")
+        apply_preset_button = QPushButton(icon("fa5s.check"), "Aplicar")
         apply_preset_button.clicked.connect(self._on_apply_preset_clicked)
-        delete_preset_button = QPushButton("Eliminar")
+        delete_preset_button = QPushButton(icon_danger("fa5s.trash"), "Eliminar")
         delete_preset_button.clicked.connect(self._on_delete_preset_clicked)
         preset_apply_row = QHBoxLayout()
         preset_apply_row.addWidget(self._preset_selector, stretch=1)
         preset_apply_row.addWidget(apply_preset_button)
         preset_apply_row.addWidget(delete_preset_button)
 
-        save_preset_button = QPushButton("Guardar configuración actual como preset...")
+        save_preset_button = QPushButton(
+            icon("fa5s.bookmark"), "Guardar configuración actual como preset..."
+        )
         save_preset_button.clicked.connect(self._on_save_preset_clicked)
 
         presets_layout = QVBoxLayout()
@@ -176,7 +186,7 @@ class BroadcastSettingsScreen(QWidget):
         presets_box.setLayout(presets_layout)
 
         # --- Guardar ---
-        save_button = QPushButton("Guardar")
+        save_button = QPushButton(icon("fa5s.save", primary=True), "Guardar")
         save_button.clicked.connect(self._on_save_clicked)
         mark_as_primary_action(save_button)
         save_button.setMaximumWidth(320)

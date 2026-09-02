@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
 )
 from sqlalchemy.orm import sessionmaker
 
-from control_panel.theme import mark_as_primary_action
+from control_panel.theme import icon, mark_as_primary_action
 
 from backend.app.services.obs_settings_service import (
     get_obs_settings,
@@ -46,12 +46,12 @@ class ObsSettingsScreen(QWidget):
         self._draft_scene_selector = QComboBox()
         self._draft_scene_selector.setEditable(True)
 
-        test_button = QPushButton("Probar conexión")
+        test_button = QPushButton(icon("fa5s.plug"), "Probar conexión")
         test_button.clicked.connect(self._on_test_connection_clicked)
         test_button.setMaximumWidth(320)
         self._test_status_label = QLabel("")
 
-        save_button = QPushButton("Guardar")
+        save_button = QPushButton(icon("fa5s.save", primary=True), "Guardar")
         save_button.clicked.connect(self._on_save_clicked)
         mark_as_primary_action(save_button)
         save_button.setMaximumWidth(320)

@@ -49,10 +49,22 @@ from backend.app.services.player_profile_service import (
 )
 from backend.app.services.player_service import get_player
 from control_panel.overlay_bridge import OverlayBridge
-from control_panel.theme import mark_as_primary_action
+from control_panel.theme import icon, icon_danger, mark_as_primary_action
 
 CHARACTER_DISPLAY_NAMES = {entry["id"]: entry["display_name"] for entry in SF6_ROSTER}
 GRID_COLUMNS = 8
+
+# Indicador de paso (checkpoint UX-1, ver ROADMAP.md) - un status de
+# draft mapea siempre al mismo numero de paso, no depende de nada mas.
+STEP_TOTAL = 4
+STEP_NUMBER = {"SETUP": 1, "BANNING": 2, "RANDOMIZING": 3, "REVEAL": 4, "DONE": 4}
+STEP_DESCRIPTION = {
+    "SETUP": "Elegí quién banea primero",
+    "BANNING": "Baneando personajes",
+    "RANDOMIZING": "Sorteando personajes",
+    "REVEAL": "Revelando resultados",
+    "DONE": "Listo",
+}
 
 # Mismos retratos chicos que ya usa el overlay (checkpoint UI-4, ver
 # ROADMAP.md) - QPixmap carga .webp sin problema (confirmado con un
@@ -205,11 +217,15 @@ class BanningScreen(QWidget):
 
         self._match_selector = QComboBox()
         self._match_selector.currentIndexChanged.connect(self._on_match_selected)
-        refresh_button = QPushButton("Refrescar partidas")
+        refresh_button = QPushButton(icon("fa5s.sync"), "Refrescar partidas")
         refresh_button.clicked.connect(self._reload_matches)
-        self._delete_match_button = QPushButton("Eliminar esta partida")
+        self._delete_match_button = QPushButton(
+            icon_danger("fa5s.trash"), "Eliminar esta partida"
+        )
         self._delete_match_button.clicked.connect(self._on_delete_match_clicked)
-        clear_all_button = QPushButton("Limpiar TODAS las partidas")
+        clear_all_button = QPushButton(
+            icon_danger("fa5s.trash"), "Limpiar TODAS las partidas"
+        )
         clear_all_button.clicked.connect(self._on_clear_all_matches_clicked)
         match_row = QHBoxLayout()
         match_row.addWidget(self._match_selector)
@@ -218,7 +234,9 @@ class BanningScreen(QWidget):
         match_row.addWidget(clear_all_button)
 
         self._first_banner_selector = QComboBox()
-        self._start_button = QPushButton("Iniciar baneo")
+        self._start_button = QPushButton(
+            icon("fa5s.play", primary=True), "Iniciar baneo"
+        )
         self._start_button.clicked.connect(self._on_start_banning_clicked)
         mark_as_primary_action(self._start_button)
         start_row = QHBoxLayout()
@@ -227,6 +245,15 @@ class BanningScreen(QWidget):
         start_row.addWidget(self._start_button)
 
         self._status_label = QLabel("Elige una partida.")
+
+        # Indicador de paso (checkpoint UX-1) - convierte la pantalla
+        # (con varios botones visibles a la vez, aunque la mayoria
+        # deshabilitados segun el momento) en algo que se lee como una
+        # secuencia clara para alguien no tecnico, no como un panel de
+        # control con todo suelto. Se actualiza junto con _status_label
+        # en _refresh_state().
+        self._step_label = QLabel("")
+        self._step_label.setStyleSheet("font-weight: 700;")
 
         # Panel de CFN de ambos jugadores (rango/MR/personaje actual) -
         # checkpoint UI-4, mismo tracker que ya usa Jugadores (UI-2) y
@@ -294,21 +321,25 @@ class BanningScreen(QWidget):
         grid_box_layout.addWidget(grid_scroll)
         grid_box.setLayout(grid_box_layout)
 
-        self._lock_in_button = QPushButton("Bloquear")
+        self._lock_in_button = QPushButton(icon("fa5s.lock", primary=True), "Bloquear")
         self._lock_in_button.setEnabled(False)
         self._lock_in_button.clicked.connect(self._on_lock_in_clicked)
         mark_as_primary_action(self._lock_in_button)
 
-        self._randomize_button = QPushButton("Randomizar")
+        self._randomize_button = QPushButton(icon("fa5s.random"), "Randomizar")
         self._randomize_button.clicked.connect(self._on_randomize_clicked)
         self._results_label = QLabel("")
-        self._complete_button = QPushButton("Completar reveal")
+        self._complete_button = QPushButton(
+            icon("fa5s.check-circle", primary=True), "Completar reveal"
+        )
         self._complete_button.clicked.connect(self._on_complete_clicked)
         mark_as_primary_action(self._complete_button)
 
         # Estadisticas de CFN del ultimo baneo confirmado (checkpoint
         # HUD-10) - deshabilitado hasta que haya al menos un baneo real.
-        self._show_stats_button = QPushButton("Mostrar estadísticas")
+        self._show_stats_button = QPushButton(
+            icon("fa5s.chart-bar"), "Mostrar estadísticas"
+        )
         self._show_stats_button.setEnabled(False)
         self._show_stats_button.clicked.connect(self._on_toggle_stats_clicked)
         self._stats_label = QLabel("")
@@ -328,6 +359,7 @@ class BanningScreen(QWidget):
         layout = QVBoxLayout()
         layout.addLayout(match_row)
         layout.addLayout(start_row)
+        layout.addWidget(self._step_label)
         layout.addWidget(self._status_label)
         layout.addLayout(cfn_row)
         layout.addWidget(grid_box)
@@ -377,6 +409,7 @@ class BanningScreen(QWidget):
             self._stop_ban_timer()
             self._overlay_bridge.emit_match_state({"match_id": None})
             self._status_label.setText("Elige una partida.")
+            self._step_label.setText("")
             for button in self._character_buttons.values():
                 button.setEnabled(False)
                 button.set_marker(is_strong=False, is_banned=False)
@@ -465,6 +498,9 @@ class BanningScreen(QWidget):
             )
         else:
             self._status_label.setText(status_messages.get(status, status))
+        self._step_label.setText(
+            f"Paso {STEP_NUMBER[status]} de {STEP_TOTAL}: {STEP_DESCRIPTION[status]}"
+        )
 
         self._randomize_button.setEnabled(status == "RANDOMIZING")
         self._complete_button.setEnabled(status == "REVEAL")
