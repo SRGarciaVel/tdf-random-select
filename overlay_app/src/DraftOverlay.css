@@ -300,6 +300,12 @@
    * preview hacia su carta) no "salta" de forma al aterrizar, aunque
    * los tamaños absolutos sean muy distintos. */
   clip-path: polygon(14% 0, 100% 0, 86% 100%, 0 100%);
+  /* Forzar una capa compuesta por GPU en vez de rasterizado por CPU -
+   * suaviza el dentado del borde diagonal (mas visible con contraste
+   * alto, como el blanco de la carta de estadisticas contra el fondo
+   * oscuro - bug real que Seba encontro viendo la carta armada). */
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .ban-card-inner img {
@@ -562,6 +568,13 @@
   inset: 0;
   z-index: 5;
   background: #f2f2f2;
+  /* will-change en vez de transform:translateZ(0) - este elemento lo
+   * anima Framer Motion via scaleX (transform inline por JS), que
+   * hubiera pisado un transform fijo puesto por CSS. will-change logra
+   * el mismo objetivo (forzar una capa compuesta por GPU, suavizando
+   * el dentado del clip-path) sin chocar con la animacion. */
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .ban-card-stats-content {
@@ -587,6 +600,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  /* .ban-card-inner recorta con un paralelogramo (14% arriba, 0% abajo
+   * - no un rectangulo recto), asi que el centro geometrico real no es
+   * el 50% parejo que usa flexbox: arriba el hueco visible va de 14%
+   * a 100%, mas corrido a la derecha. Sin este corrimiento el texto de
+   * arriba queda visualmente pegado a la izquierda (bug real que Seba
+   * encontro viendo la carta armada). */
+  transform: translateX(5%);
 }
 
 .ban-card-stats-winrate {
@@ -594,6 +614,10 @@
   flex-direction: column;
   align-items: center;
   gap: 3px;
+  /* mismo ajuste que .ban-card-stats-name pero al reves: abajo el
+   * hueco visible del paralelogramo va de 0% a 86%, corrido a la
+   * izquierda respecto del 50% parejo. */
+  transform: translateX(-5%);
 }
 
 .ban-card-stats-winrate-label {
@@ -612,6 +636,8 @@
   font-size: 0.85rem;
   font-weight: 600;
   opacity: 0.75;
+  /* mismo ajuste que .ban-card-stats-winrate, mismo motivo. */
+  transform: translateX(-5%);
 }
 
 /* --- Logo del torneo, arriba centrado (checkpoint acordado, ver

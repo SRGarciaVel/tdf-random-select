@@ -1076,6 +1076,34 @@ estadísticas") - confirmados con un mockup antes de tocar código real.
 
   33 tests del overlay siguen pasando, build limpio.
 
+## Fase 4.11 — Centrado real y bordes suaves en la carta de estadísticas (checkpoint UX-6)
+
+- [x] **Texto descentrado, causa raíz encontrada**: `.ban-card-inner`
+      recorta con un paralelogramo (`clip-path: polygon(14% 0, 100% 0,
+      86% 100%, 0 100%)`), no un rectángulo recto - el borde de arriba
+      va de 14% a 100%, el de abajo de 0% a 86%, desplazados entre sí.
+      El centro geométrico real cambia según la altura (57% arriba,
+      43% abajo), no el 50% parejo que asume el centrado de flexbox -
+      por eso el nombre (arriba) y el winrate/"Nunca jugado" (abajo)
+      se veían corridos, cada uno para un lado distinto. Corregido con
+      un `transform: translateX()` calculado a partir del mismo
+      clip-path (+5% arriba, -5% abajo), no un ajuste a ojo.
+- [x] **Bordes con dientes de sierra**: el corte diagonal del
+      `clip-path` se ve más dentado con alto contraste (blanco sobre
+      fondo oscuro, como esta carta) que en el resto del HUD donde la
+      misma técnica se usa con menos contraste. Mitigado forzando una
+      capa compuesta por GPU (`transform: translateZ(0)` +
+      `backface-visibility: hidden` en `.ban-card-inner`, `will-change:
+      transform` en `.ban-card-stats-wipe` en vez de `transform` fijo,
+      porque ese elemento lo anima Framer Motion vía `transform` y
+      hubiera chocado). Sin navegador headless disponible en este
+      sandbox para confirmar el resultado real en Chromium/CEF (mismo
+      límite que otros ajustes visuales de React en esta conversación)
+      - mitigación de buena fe con la técnica estándar, pendiente de
+      que Seba confirme el resultado real en OBS.
+
+  33 tests del overlay siguen pasando, build limpio.
+
 ## Fase 5 — Empaquetado
 
 - [ ] `.exe` con PyInstaller (`--onefile`), estáticos de `overlay_app`
