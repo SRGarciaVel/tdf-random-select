@@ -1106,9 +1106,48 @@ estadísticas") - confirmados con un mockup antes de tocar código real.
 
 ## Fase 5 — Empaquetado
 
-- [ ] `.exe` con PyInstaller (`--onefile`), estáticos de `overlay_app`
-      empaquetados adentro (`--add-data`), sin depender de carpetas
-      externas.
+- [x] **`.exe` con PyInstaller (`--onefile`), estáticos empaquetados
+      adentro, sin depender de carpetas externas para lo que sí tiene
+      que persistir.** Decisión de arquitectura clave, tomada antes de
+      escribir el `.spec`: con `--onefile`, PyInstaller descomprime
+      todo en una carpeta TEMPORAL nueva en cada arranque que se borra
+      al cerrar - perfecta para contenido de solo lectura (el build de
+      Vite), un desastre si ahí vivieran la base de datos o los
+      retratos (se perdería todo entre arranques). Por eso
+      `backend/app/paths.py` nuevo, con dos funciones separadas:
+      `get_bundle_dir()` (solo lectura, apunta a la carpeta temporal
+      de extracción cuando está empaquetado) y `get_external_data_dir()`
+      (todo lo que tiene que sobrevivir y que Seba pueda seguir
+      actualizando sin re-empaquetar - retratos, logos, la base real -
+      apunta a la carpeta REAL donde vive el .exe). Reemplaza 3 copias
+      independientes del mismo cálculo de rutas que había repartidas
+      en `backend/app/__init__.py`, `banning_screen.py` y
+      `broadcast_settings_screen.py` (riesgo real de corregir una y
+      olvidarse las otras dos) por una sola fuente de verdad.
+      Verificado en dos niveles: (1) un test que simula `sys.frozen`
+      encendido y confirma que cada ruta cae donde corresponde: datos
+      persistentes al lado del `.exe` falso, build de Vite en la
+      carpeta temporal falsa; (2) **una corrida real de PyInstaller en
+      este sandbox** (produce un binario de Linux, no el `.exe` de
+      Windows - no hay cross-compilation, Seba tiene que correr esto
+      desde Windows real para el artefacto final) que sí generó un
+      ejecutable real y se probó de punta a punta: arrancó sin
+      traceback, sirvió el overlay empaquetado (`GET /` → 200), sirvió
+      el roster, dio 404 limpio (no un crash) al pedir un retrato con
+      la carpeta `portraits/` ausente a propósito, y **la base de
+      datos se creó de verdad al lado del ejecutable**, no en la
+      carpeta temporal - la mejor confirmación posible de la lógica de
+      rutas sin tener Windows real a mano.
+      `tdf_random_select.spec` a mano (no autogenerado) con
+      `hiddenimports=["engineio.async_drivers.threading"]` (el modo
+      async real de Flask-SocketIO en este proyecto, dado que
+      `requirements.txt` no trae eventlet/gevent) - agregado como
+      excepción explícita en `.gitignore` (que traía `*.spec` en la
+      sección de PyInstaller desde antes, lo hubiera dejado sin
+      trackear en git sin darse cuenta). PyInstaller detectó y aplicó
+      su hook oficial de `qtawesome` solo, sin configuración extra.
+      `pyinstaller==6.22.2` sumado a `requirements-dev.txt`.
+      89 tests de Python (3 nuevos de `paths.py`) siguen pasando.
 - [ ] Probado en una máquina Windows limpia (sin Python ni Node
       instalados) antes de entregar al CEO.
 - [ ] Definir si se firma el ejecutable o se vive con el warning de

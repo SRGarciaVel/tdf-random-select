@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import datetime as dt
 import threading
-from pathlib import Path
 
 from PyQt6.QtCore import QSize, Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QIcon, QPixmap
@@ -26,6 +25,7 @@ from sqlalchemy.orm import sessionmaker
 
 from backend.app.data.sf6_roster import SF6_ROSTER
 from backend.app.models import Match
+from backend.app.paths import PORTRAITS_DIR
 from backend.app.services.broadcast_settings_service import get_broadcast_settings
 from backend.app.services.character_stats_service import (
     CharacterStatsUnavailable,
@@ -66,15 +66,13 @@ STEP_DESCRIPTION = {
     "DONE": "Listo",
 }
 
+
 # Mismos retratos chicos que ya usa el overlay (checkpoint UI-4, ver
 # ROADMAP.md) - QPixmap carga .webp sin problema (confirmado con un
 # test real antes de construir esto), no hace falta un tercer set de
-# imagenes para la grilla del panel.
-PORTRAITS_DIR = (
-    Path(__file__).resolve().parents[2] / "overlay_app" / "public" / "portraits"
-)
-
-
+# imagenes para la grilla del panel. PORTRAITS_DIR sale de
+# backend.app.paths (Fase 5) - consciente de si la app esta corriendo
+# empaquetada o desde el codigo fuente, en vez de calcularlo local acá.
 def _portrait_path(character_id: str) -> str:
     return str(PORTRAITS_DIR / f"{character_id}.webp")
 

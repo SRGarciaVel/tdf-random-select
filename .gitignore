@@ -20,6 +20,10 @@ overlay_app/public/branding/
 build/
 dist/
 *.spec
+# ...excepto el spec real del proyecto (Fase 5, ver ROADMAP.md) - no es
+# un auto-generado descartable, tiene datas/hiddenimports a mano que no
+# se recrean solos con un "pyinstaller main.py" nuevo.
+!tdf_random_select.spec
 
 # Datos locales del draft (SQLite) y config sensible
 *.db

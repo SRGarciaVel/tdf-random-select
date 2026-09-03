@@ -24,6 +24,7 @@ from PyQt6.QtWidgets import (
 )
 from sqlalchemy.orm import sessionmaker
 
+from backend.app.paths import BRANDING_DIR
 from backend.app.services.broadcast_preset_service import (
     apply_preset,
     delete_preset,
@@ -35,13 +36,6 @@ from backend.app.services.broadcast_settings_service import (
     update_broadcast_settings,
 )
 from control_panel.theme import icon, icon_danger, mark_as_primary_action
-
-# Se sirve directo desde overlay_app/public/branding/ via Flask (ver
-# backend/app/__init__.py) - nunca necesita "npm run build" (fix real,
-# checkpoint UX-2, ver ROADMAP.md).
-BRANDING_DIR = (
-    Path(__file__).resolve().parents[2] / "overlay_app" / "public" / "branding"
-)
 
 
 class BroadcastSettingsScreen(QWidget):

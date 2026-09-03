@@ -25,12 +25,13 @@ from __future__ import annotations
 import io
 import sys
 import time
-from pathlib import Path
 
 import requests
 from PIL import Image
 
 from backend.app.data.sf6_roster import CHARACTER_IDS
+from backend.app.paths import PORTRAITS_DIR as OUTPUT_DIR
+from backend.app.paths import PORTRAITS_LARGE_DIR as LARGE_OUTPUT_DIR
 
 # El "id" interno (usado en toda la logica del draft) no siempre coincide
 # con el slug real que usa streetfighter.com en sus URLs - solo se listan
@@ -45,9 +46,6 @@ SITE_SLUG_OVERRIDES: dict[str, str] = {
     "c_viper": "cviper",
 }
 
-PUBLIC_DIR = Path(__file__).resolve().parents[2] / "overlay_app" / "public"
-OUTPUT_DIR = PUBLIC_DIR / "portraits"
-LARGE_OUTPUT_DIR = PUBLIC_DIR / "portraits-large"
 BASE_URL = "https://www.streetfighter.com/6/assets/images/character"
 PAGE_BASE_URL = "https://www.streetfighter.com/6/es-us/character"
 REQUEST_DELAY_SECONDS = 1.0  # no golpear el sitio de Capcom sin pausas entre pedidos

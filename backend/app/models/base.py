@@ -1,13 +1,9 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
-# Ubicacion por defecto de la base local (ver SPECS.md paragrafo 6) - vive
-# en la raiz del proyecto, gitignoreada (contiene datos reales de matches).
-DEFAULT_DB_PATH = Path(__file__).resolve().parents[3] / "tdf_random_select.db"
+from backend.app.paths import DEFAULT_DB_PATH
 
 
 class Base(DeclarativeBase):
