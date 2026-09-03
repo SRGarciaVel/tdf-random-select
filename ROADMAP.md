@@ -1064,6 +1064,18 @@ estadísticas") - confirmados con un mockup antes de tocar código real.
   geometría de la chapa) - verificado también con una captura real
   (`window.grab()`) de la grilla completa.
 
+## Fase 4.10 — Ajuste chico del logo (checkpoint UX-5)
+
+- [x] Sacado el logo chico que quedaba dentro del panel central junto al
+      nombre del torneo (`.center-logo`) - con el logo grande arriba
+      centrado ya construido (checkpoint UX-3), quedaba redundante.
+- [x] Logo de arriba centrado agrandado al doble (68px → 136px de alto,
+      240px → 480px de ancho) - el divisor de abajo también se agrandó
+      proporcionalmente (160px → 240px) para que no quedara desbalanceado
+      bajo un logo mucho más grande.
+
+  33 tests del overlay siguen pasando, build limpio.
+
 ## Fase 5 — Empaquetado
 
 - [ ] `.exe` con PyInstaller (`--onefile`), estáticos de `overlay_app`

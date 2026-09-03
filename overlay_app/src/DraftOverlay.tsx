@@ -541,16 +541,6 @@ function CenterPanel({
   return (
     <div className="center-panel" ref={panelRef}>
       <div className="center-panel-brand">
-        {broadcastSettings?.logo_url && (
-          <img
-            className="center-logo"
-            src={broadcastSettings.logo_url}
-            alt=""
-            onError={(event) => {
-              event.currentTarget.style.display = "none";
-            }}
-          />
-        )}
         {label && <span className="center-label">{label}</span>}
       </div>
       <div className="center-vs">VS</div>

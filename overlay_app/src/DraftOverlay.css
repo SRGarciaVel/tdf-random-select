@@ -450,12 +450,6 @@
   gap: 0.3rem;
 }
 
-.center-logo {
-  max-height: 16px;
-  max-width: 60px;
-  object-fit: contain;
-}
-
 .center-label {
   font-size: 1rem; /* agrandado a pedido de Seba - se veia chico comparado con el resto */
   font-weight: 600;
@@ -637,15 +631,15 @@
 }
 
 .hud-top-logo {
-  max-height: 68px;
-  max-width: 240px;
+  max-height: 136px;
+  max-width: 480px;
   object-fit: contain;
   filter: drop-shadow(0 0 10px var(--hud-accent-color))
     drop-shadow(0 0 22px var(--hud-accent-color));
 }
 
 .hud-top-logo-divider {
-  width: 160px;
+  width: 240px;
   height: 2px;
   background: linear-gradient(
     90deg,
