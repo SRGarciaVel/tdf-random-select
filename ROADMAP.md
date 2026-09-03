@@ -1148,6 +1148,42 @@ estadísticas") - confirmados con un mockup antes de tocar código real.
       su hook oficial de `qtawesome` solo, sin configuración extra.
       `pyinstaller==6.22.2` sumado a `requirements-dev.txt`.
       89 tests de Python (3 nuevos de `paths.py`) siguen pasando.
+- [x] **Primera prueba real en Windows (03-09-2026), no solo en el
+      sandbox.** El camino no fue directo, documentado acá porque puede
+      repetirse en otra máquina:
+      1. Python 3.14 (recién instalado por Seba) rompió `Pillow` al
+         compilar desde cero (sin binario precompilado todavía para
+         esa versión tan nueva) - resuelto salteando `Pillow` del
+         `pip install` (no hace falta para correr la app ni para
+         empaquetar, solo la usa `download_portraits.py`).
+      2. SQLAlchemy 2.0.35 (el pin original) reventaba al importar los
+         modelos, ya empaquetado - error real de compatibilidad con
+         Python 3.14 en cómo interpreta anotaciones de tipo modernas
+         (`str | None`), no un bug del código del proyecto. Resuelto
+         subiendo el pin a `SQLAlchemy==2.0.52` - confirmado con toda
+         la suite de tests otra vez en el sandbox antes de aceptar el
+         cambio (89/89 igual).
+      3. Con esos dos ajustes, **el `.exe` real de Windows arrancó y
+         funcionó de punta a punta**: retratos (`.webp`) y logos
+         sirviéndose bien (confirmando que el plugin de WebP de Qt sí
+         se empaqueta bien en Windows - la única duda real que no se
+         pudo despejar desde el sandbox Linux), la base de datos
+         creada de verdad al lado del `.exe`, la precarga de
+         tdf-edeportes fallando en silencio sin romper nada (modo
+         degradado funcionando como se diseñó).
+- [x] **Ícono de la app** (`assets/icon.ico`) - recorte cuadrado de la
+      cara de la mascota de TDF (a partir del logo completo que Seba
+      subió), fondo blanco sacado con flood-fill desde los bordes (no
+      un umbral global, para no perforar agujeros si el personaje
+      tuviera algún detalle claro propio), 7 resoluciones (16 a 256px)
+      en el mismo `.ico`. Conectado en el `.spec` (`icon="assets/
+      icon.ico"`) - en Linux PyInstaller lo ignora con un warning
+      explícito ("solo soportado en Windows y macOS"), comportamiento
+      documentado y esperado, se aplica de verdad en el build de
+      Windows. De paso, `console=True` (para la primera prueba) pasó a
+      `console=False` ahora que se confirmó que arranca bien - la
+      versión que se comparte de verdad no muestra la ventana de
+      consola de fondo.
 - [ ] Probado en una máquina Windows limpia (sin Python ni Node
       instalados) antes de entregar al CEO.
 - [ ] Definir si se firma el ejecutable o se vive con el warning de

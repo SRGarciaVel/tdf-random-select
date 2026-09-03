@@ -25,6 +25,13 @@ El resultado queda en dist/TDF Random Select.exe - antes de compartirlo,
 copiar la carpeta overlay_app/public/ (con portraits/, portraits-large/,
 y branding/ si existen) al lado de ese .exe, preservando la misma
 estructura relativa que ya tiene el proyecto.
+
+Icono: assets/icon.ico (recorte cuadrado de la cara de la mascota de
+TDF, fondo removido con flood-fill desde los bordes - no un umbral
+global, para no perforar agujeros si el personaje tenía algún detalle
+claro propio). Generado con 7 resoluciones (16 a 256px) en el mismo
+.ico, como corresponde para que Windows lo use bien tanto chico en la
+barra de tareas como grande en el escritorio.
 """
 
 block_cipher = None
@@ -69,15 +76,16 @@ exe = EXE(
     upx=False,
     upx_exclude=[],
     runtime_tmpdir=None,
-    # console=True para la PRIMERA prueba en una maquina limpia - si
-    # algo falla al arrancar, la consola muestra el error real en vez
-    # de cerrarse en silencio sin dejar pistas. Una vez confirmado que
-    # arranca bien, cambiar a False para la version que se comparte de
-    # verdad (sin ventana de consola de fondo).
-    console=True,
+    # console=False: confirmado en Windows real (01-09-2026) que la app
+    # arranca bien empaquetada - la ventana de consola de la primera
+    # prueba ya cumplio su proposito (ver ROADMAP.md, Fase 5). Si algo
+    # falla mas adelante y hace falta ver el error, cambiar esto a
+    # True de nuevo temporalmente.
+    console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon="assets/icon.ico",
 )
