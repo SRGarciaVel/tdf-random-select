@@ -1184,6 +1184,20 @@ estadísticas") - confirmados con un mockup antes de tocar código real.
       `console=False` ahora que se confirmó que arranca bien - la
       versión que se comparte de verdad no muestra la ventana de
       consola de fondo.
+      **Bug real encontrado al probar en Windows**: el `.exe` ya tenía
+      la cara del mono como ícono en el Explorador, pero la ventana en
+      sí (y su ícono en la barra de tareas mientras corre) seguían
+      mostrando el genérico de Qt. Son dos cosas separadas: `icon=` en
+      el `.spec` graba el ícono en los recursos del `.exe` (lo que ve
+      el Explorador/accesos directos), pero la ventana en tiempo de
+      ejecución necesita `QApplication.setWindowIcon()` en el código
+      - no se hereda solo del ícono del ejecutable. Agregado en
+      `main.py`, con `ICON_PATH` sumado a `backend/app/paths.py` (de
+      solo lectura, igual criterio que el build de Vite - va
+      empaquetado adentro del `.exe`, no al lado) y agregado también a
+      `datas` en el `.spec` (antes solo estaba referenciado por
+      `icon=`, que no lo deja disponible en tiempo de ejecución).
+      Verificado que `QIcon` carga el archivo real sin quedar vacío/roto.
 - [ ] Probado en una máquina Windows limpia (sin Python ni Node
       instalados) antes de entregar al CEO.
 - [ ] Definir si se firma el ejecutable o se vive con el warning de

@@ -42,6 +42,14 @@ a = Analysis(
     binaries=[],
     datas=[
         ("overlay_app/build", "overlay_app/build"),
+        # Bundleado ademas de referenciado por icon= mas abajo: icon=
+        # solo graba el icono en los recursos del .exe (para el
+        # Explorador/accesos directos) - para que la ventana en si
+        # tenga el mismo icono en la barra de tareas hace falta que
+        # QApplication.setWindowIcon() lo cargue en tiempo de
+        # ejecucion (ver main.py), y para eso necesita existir como
+        # archivo real dentro del paquete, no solo como recurso del exe.
+        ("assets/icon.ico", "assets"),
     ],
     hiddenimports=[
         # Flask-SocketIO/Engine.IO a veces no detectan el driver async

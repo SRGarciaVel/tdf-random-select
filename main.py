@@ -4,11 +4,13 @@ import sys
 import threading
 
 from PyQt6.QtCore import QTimer
+from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication
 from qasync import QEventLoop
 
 from backend.app import create_app, socketio
 from backend.app.models import get_engine, get_session_factory, init_db
+from backend.app.paths import ICON_PATH
 from backend.app.services.character_stats_service import warm_up_tdf_edeportes
 from control_panel.main_window import MainWindow
 from control_panel.theme import apply_theme
@@ -57,6 +59,17 @@ def main() -> int:
 
     app = QApplication(sys.argv)
     apply_theme(app)
+    # Icono de la ventana/barra de tareas mientras corre - DISTINTO del
+    # icono del propio archivo .exe (ese lo graba PyInstaller via icon=
+    # en el .spec, se ve en el Explorador/accesos directos). Sin esto,
+    # Qt usa su icono generico en la barra de tareas aunque el .exe ya
+    # tenga la cara del mono puesta (bug real que Seba encontro
+    # probando el primer build con icono). setWindowIcon() en el
+    # archivo con ese nombre; ICON_PATH.exists() por las dudas, para no
+    # romper si alguien corre esto sin haber empaquetado con datas=
+    # actualizado.
+    if ICON_PATH.exists():
+        app.setWindowIcon(QIcon(str(ICON_PATH)))
     loop = QEventLoop(app)
     asyncio.set_event_loop(loop)
 

@@ -11,6 +11,7 @@ def test_dev_mode_uses_project_root() -> None:
     assert paths.DEFAULT_DB_PATH.name == "tdf_random_select.db"
     assert paths.PORTRAITS_DIR.parts[-3:] == ("overlay_app", "public", "portraits")
     assert paths.OVERLAY_BUILD_DIR.parts[-2:] == ("overlay_app", "build")
+    assert paths.ICON_PATH.parts[-2:] == ("assets", "icon.ico")
 
 
 def test_frozen_mode_keeps_persistent_data_next_to_exe() -> None:
@@ -51,6 +52,7 @@ def test_frozen_mode_reads_bundled_overlay_build_from_temp_extraction() -> None:
     try:
         importlib.reload(paths)
         assert str(paths.OVERLAY_BUILD_DIR).startswith("/tmp/_MEI_test_fake")
+        assert str(paths.ICON_PATH).startswith("/tmp/_MEI_test_fake")
     finally:
         del sys.frozen  # type: ignore[attr-defined]
         del sys.executable

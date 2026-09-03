@@ -55,6 +55,11 @@ def get_external_data_dir() -> Path:
 
 OVERLAY_BUILD_DIR = get_bundle_dir() / "overlay_app" / "build"
 
+# Icono de la app (checkpoint de empaquetado, ver ROADMAP.md) - de solo
+# lectura como el build de Vite, mismo criterio: no cambia sin una
+# actualizacion de codigo, va empaquetado adentro del .exe.
+ICON_PATH = get_bundle_dir() / "assets" / "icon.ico"
+
 OVERLAY_PUBLIC_DIR = get_external_data_dir() / "overlay_app" / "public"
 PORTRAITS_DIR = OVERLAY_PUBLIC_DIR / "portraits"
 PORTRAITS_LARGE_DIR = OVERLAY_PUBLIC_DIR / "portraits-large"
