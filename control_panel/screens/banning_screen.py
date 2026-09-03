@@ -91,9 +91,20 @@ class CharacterButton(QWidget):
     bordeado, y Seba pidió separarlos - el recuadro clickeable es SOLO
     la cara, el nombre es una etiqueta aparte debajo, sin su propio
     borde.
+
+    ★/✕ como chapa flotando sobre la esquina superior derecha del
+    recuadro (checkpoint UX-4, a pedido de Seba: "tiene que estar sobre
+    el cuadro, no dentro del cuadro") - antes eran un prefijo de texto
+    en el nombre. La chapa NO es hija del boton del icono (que recorta
+    su propio contenido) sino un widget hermano dentro de un
+    contenedor sin layout un poco mas grande que el icono, posicionado
+    a mano con move() para que sobresalga del borde en vez de quedar
+    aplastada por dentro.
     """
 
     clicked = pyqtSignal(bool)
+    _BADGE_SIZE = 22
+    _BADGE_OVERHANG = 10  # cuanto sobresale por fuera del borde del icono
 
     def __init__(self, character_id: str, display_name: str) -> None:
         super().__init__()
@@ -112,23 +123,39 @@ class CharacterButton(QWidget):
             QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
         )
         self._icon_button.setIconSize(CHARACTER_ICON_BOX)
-        self._icon_button.setFixedSize(
-            CHARACTER_ICON_BOX.width() + 12, CHARACTER_ICON_BOX.height() + 12
-        )
+        icon_width = CHARACTER_ICON_BOX.width() + 12
+        icon_height = CHARACTER_ICON_BOX.height() + 12
+        self._icon_button.setFixedSize(icon_width, icon_height)
         pixmap = QPixmap(_portrait_path(character_id))
         if not pixmap.isNull():
             self._icon_button.setIcon(QIcon(pixmap))
         self._icon_button.clicked.connect(self.clicked.emit)
 
+        # Contenedor sin layout, mas grande que el icono en el margen
+        # que necesita la chapa para sobresalir sin que la recorten los
+        # bordes del propio icono (que sí recorta su contenido interno).
+        overhang = self._BADGE_OVERHANG
+        icon_stack = QWidget()
+        icon_stack.setFixedSize(icon_width + overhang, icon_height + overhang)
+        self._icon_button.setParent(icon_stack)
+        self._icon_button.move(0, overhang)  # deja hueco arriba para la chapa
+
+        self._badge_label = QLabel(icon_stack)
+        self._badge_label.setFixedSize(self._BADGE_SIZE, self._BADGE_SIZE)
+        self._badge_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._badge_label.move(icon_width - self._BADGE_SIZE + overhang // 2, 0)
+        self._badge_label.setVisible(False)
+        self._badge_label.raise_()
+
         self._name_label = QLabel(display_name)
         self._name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._name_label.setWordWrap(True)
-        self._name_label.setFixedWidth(self._icon_button.width())
+        self._name_label.setFixedWidth(icon_stack.width())
 
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(3)
-        layout.addWidget(self._icon_button, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(icon_stack, alignment=Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(self._name_label, alignment=Qt.AlignmentFlag.AlignHCenter)
         self.setLayout(layout)
 
@@ -142,17 +169,33 @@ class CharacterButton(QWidget):
 
     def text(self) -> str:
         """Solo para que el resto del codigo (y los tests) puedan seguir
-        leyendo el marcador ★/✕ sin importarles que ahora vive en un
-        QLabel aparte, no en el propio boton."""
-        return self._name_label.text()
+        leyendo el marcador ★/✕ sin importarles que ahora vive en la
+        chapa aparte, no en el nombre."""
+        badge = self._badge_label.text()
+        prefix = f"{badge} " if badge else ""
+        return f"{prefix}{self._name_label.text()}"
 
     def set_marker(self, is_strong: bool, is_banned: bool) -> None:
-        """★ = personaje fuerte del rival, ✕ = ya baneado - prefijos de
-        texto en vez de tachado real: Qt no soporta text-decoration de
-        forma confiable via QSS, un glifo se renderiza siempre igual sin
-        importar el estilo."""
-        prefix = "✕ " if is_banned else ("★ " if is_strong else "")
-        self._name_label.setText(f"{prefix}{self._display_name}")
+        """★ = personaje fuerte del rival, ✕ = ya baneado - una chapa
+        redonda sobre la esquina del recuadro (checkpoint UX-4), no un
+        prefijo de texto en el nombre."""
+        self._name_label.setText(self._display_name)
+        if is_banned:
+            self._badge_label.setText("✕")
+            self._badge_label.setStyleSheet(
+                "background-color: #e05a5a; color: white; border-radius: "
+                f"{self._BADGE_SIZE // 2}px; font-weight: 700;"
+            )
+            self._badge_label.setVisible(True)
+        elif is_strong:
+            self._badge_label.setText("★")
+            self._badge_label.setStyleSheet(
+                "background-color: #ffb300; color: #3d2b00; border-radius: "
+                f"{self._BADGE_SIZE // 2}px; font-weight: 700;"
+            )
+            self._badge_label.setVisible(True)
+        else:
+            self._badge_label.setVisible(False)
 
     def set_selected(self, selected: bool) -> None:
         self._icon_button.setProperty("state", "selected" if selected else "")
@@ -363,16 +406,22 @@ class BanningScreen(QWidget):
         layout.addWidget(self._status_label)
         layout.addLayout(cfn_row)
         layout.addWidget(grid_box)
-        layout.addWidget(self._lock_in_button, alignment=Qt.AlignmentFlag.AlignHCenter)
+        # Bloquear y Mostrar estadisticas van juntos, en la misma fila,
+        # justo debajo de la grilla (checkpoint UX-4, a pedido de Seba:
+        # antes "Mostrar estadisticas" quedaba al final de todo, despues
+        # de Randomizar/Completar reveal, obligando a bajar el mouse por
+        # toda la pantalla para algo relacionado con el baneo que se
+        # acaba de hacer, no con esos otros pasos).
+        ban_actions_row = QHBoxLayout()
+        ban_actions_row.addWidget(self._lock_in_button)
+        ban_actions_row.addWidget(self._show_stats_button)
+        layout.addLayout(ban_actions_row)
+        layout.addWidget(self._stats_label, alignment=Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(
             self._randomize_button, alignment=Qt.AlignmentFlag.AlignHCenter
         )
         layout.addWidget(self._results_label, alignment=Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(self._complete_button, alignment=Qt.AlignmentFlag.AlignHCenter)
-        layout.addWidget(
-            self._show_stats_button, alignment=Qt.AlignmentFlag.AlignHCenter
-        )
-        layout.addWidget(self._stats_label, alignment=Qt.AlignmentFlag.AlignHCenter)
         self._obs_status_label = QLabel("")
         layout.addWidget(self._obs_status_label)
         self.setLayout(layout)

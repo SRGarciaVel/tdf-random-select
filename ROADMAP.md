@@ -1030,6 +1030,40 @@ ser diseño correcto (no bugs) y dos eran pendientes reales.
   `window.grab()`) - la confirmación visual de este checkpoint quedó
   pendiente de que Seba la vea en OBS.
 
+## Fase 4.9 — Chapa flotante y reubicación de estadísticas (checkpoint UX-4)
+
+Cierre de los dos temas de diseño que quedaron pendientes de la
+conversación anterior (badge ★/✕ y ubicación de "Mostrar
+estadísticas") - confirmados con un mockup antes de tocar código real.
+
+- [x] **Chapa ★/✕ flotando sobre la esquina del recuadro**, no más como
+      prefijo de texto en el nombre. Implementación real: `CharacterButton`
+      ahora envuelve el icono en un contenedor sin layout un poco más
+      grande que el ícono mismo (`icon_stack`), con el ícono corrido
+      hacia abajo/izquierda vía `move()` para dejarle hueco a la
+      chapa - la chapa es un widget HERMANO del ícono (no un hijo
+      suyo, que sí recorta su contenido), así que puede sobresalir del
+      borde sin que nada la recorte. Primer intento visual (mockup) la
+      tenía apenas montada sobre el borde; Seba pidió explícitamente
+      "sobre el cuadro, no dentro" - ajustado para que sobresalga de
+      verdad. Verificado con un test que mide la geometría real de los
+      dos widgets (no solo que la chapa esté visible): el borde
+      superior de la chapa queda antes que el del ícono, y el borde
+      derecho después - matemáticamente sobresaliendo, no una
+      superposición visual que "parece" sobresalir. `.text()` se
+      mantiene retrocompatible con el resto del código/tests (arma el
+      string viejo "★ Nombre" a partir de la chapa + el nombre, aunque
+      internamente ya no se guarden juntos).
+- [x] **"Mostrar estadísticas" reubicado junto a "Bloquear"**, en la
+      misma fila, justo debajo de la grilla - antes vivía al final de
+      todo, después de Randomizar/Completar reveal (pasos posteriores
+      del draft, sin relación con el baneo recién hecho), obligando a
+      cruzar toda la pantalla con el mouse cada vez.
+
+  86 tests de Python siguen pasando (más el test nuevo específico de la
+  geometría de la chapa) - verificado también con una captura real
+  (`window.grab()`) de la grilla completa.
+
 ## Fase 5 — Empaquetado
 
 - [ ] `.exe` con PyInstaller (`--onefile`), estáticos de `overlay_app`
